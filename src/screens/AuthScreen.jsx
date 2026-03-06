@@ -2,9 +2,9 @@ import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { theme } from "../styles/theme";
 
-const AuthScreen = () => {
+const AuthScreen = ({ onGuest }) => {
   const { signIn, signUp } = useAuth();
-  const [mode, setMode] = useState("login"); // "login" | "signup"
+  const [mode, setMode] = useState("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [username, setUsername] = useState("");
@@ -20,7 +20,13 @@ const AuthScreen = () => {
 
     if (mode === "login") {
       const { error } = await signIn(email, password);
-      if (error) setError(error.message);
+      if (error) {
+        if (error.message.includes("Invalid login")) {
+          setError("Wrong email or password. Try again.");
+        } else {
+          setError(error.message);
+        }
+      }
     } else {
       if (!username.trim()) {
         setError("Username is required");
@@ -28,8 +34,16 @@ const AuthScreen = () => {
         return;
       }
       const { error } = await signUp(email, password, username);
-      if (error) setError(error.message);
-      else setSuccess("Account created! Check your email to confirm.");
+      if (error) {
+        if (error.message.includes("rate limit") || error.message.includes("email")) {
+          setError("Too many signups attempted. Please wait a few minutes and try again, or check your email for a confirmation link.");
+        } else {
+          setError(error.message);
+        }
+      } else {
+        setSuccess("Account created! You can now sign in.");
+        setMode("login");
+      }
     }
 
     setLoading(false);
@@ -43,7 +57,6 @@ const AuthScreen = () => {
       <div className="auth-sub">Find pickup games near you</div>
 
       <div className="auth-card">
-        {/* Toggle */}
         <div className="auth-toggle">
           <button
             className={`auth-toggle-btn ${mode === "login" ? "active" : ""}`}
@@ -111,7 +124,17 @@ const AuthScreen = () => {
         </form>
       </div>
 
-      <div style={{ textAlign: "center", marginTop: 16, fontSize: 11, color: theme.textMuted }}>
+      {/* Guest access */}
+      <div style={{ textAlign: "center", marginTop: 16 }}>
+        <button
+          onClick={onGuest}
+          style={{ background: "none", border: "none", color: theme.textMuted, fontSize: 13, cursor: "pointer", textDecoration: "underline", fontFamily: "Outfit, sans-serif" }}
+        >
+          Browse as Guest →
+        </button>
+      </div>
+
+      <div style={{ textAlign: "center", marginTop: 12, fontSize: 11, color: theme.textDim }}>
         By continuing you agree to PlayPulse's Terms & Privacy Policy
       </div>
     </div>

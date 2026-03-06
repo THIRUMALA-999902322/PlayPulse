@@ -30,6 +30,7 @@ export default function App() {
   const { user, loading, isSupabaseConfigured } = useAuth();
   const [screen, setScreen] = useState("home");
   const [selectedMatch, setSelectedMatch] = useState(null);
+  const [guestMode, setGuestMode] = useState(false);
 
   const handleMatchClick = (m) => {
     setSelectedMatch(m);
@@ -70,13 +71,13 @@ export default function App() {
     );
   }
 
-  // Show auth only if Supabase is configured AND user is not logged in
-  if (isSupabaseConfigured && !user) {
+  // Show auth if Supabase is configured, user not logged in, and not in guest mode
+  if (isSupabaseConfigured && !user && !guestMode) {
     return (
       <>
         <style>{globalStyles}</style>
         <div className="app-shell">
-          <AuthScreen />
+          <AuthScreen onGuest={() => setGuestMode(true)} />
         </div>
       </>
     );
@@ -86,6 +87,29 @@ export default function App() {
     <>
       <style>{globalStyles}</style>
       <div className="app-shell">
+        {/* Guest mode banner */}
+        {guestMode && !user && (
+          <div style={{
+            background: theme.warning + "15",
+            borderBottom: `1px solid ${theme.warning}30`,
+            padding: "8px 16px",
+            fontSize: 11,
+            color: theme.warning,
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            position: "sticky", top: 0, zIndex: 200,
+          }}>
+            <span>👤 Browsing as guest</span>
+            <button
+              onClick={() => setGuestMode(false)}
+              style={{ background: theme.warning, color: theme.bg, border: "none", borderRadius: 6, padding: "3px 10px", fontSize: 10, fontWeight: 700, cursor: "pointer", fontFamily: "Outfit, sans-serif" }}
+            >
+              Sign In
+            </button>
+          </div>
+        )}
+
         {renderScreen()}
 
         {screen !== "matchDetail" && (
