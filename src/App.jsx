@@ -27,7 +27,7 @@ const navItems = [
 ];
 
 export default function App() {
-  const { user, loading } = useAuth();
+  const { user, loading, isSupabaseConfigured } = useAuth();
   const [screen, setScreen] = useState("home");
   const [selectedMatch, setSelectedMatch] = useState(null);
 
@@ -53,6 +53,7 @@ export default function App() {
     }
   };
 
+  // Loading splash
   if (loading) {
     return (
       <>
@@ -69,7 +70,8 @@ export default function App() {
     );
   }
 
-  if (!user) {
+  // Show auth only if Supabase is configured AND user is not logged in
+  if (isSupabaseConfigured && !user) {
     return (
       <>
         <style>{globalStyles}</style>
