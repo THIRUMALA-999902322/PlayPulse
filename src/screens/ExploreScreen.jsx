@@ -31,7 +31,7 @@ const ExploreScreen = ({ onMatchClick }) => {
         title: m.title,
         location: m.location,
         distance: "Nearby",
-        time: new Date(m.match_time).toLocaleString(),
+        time: new Date(m.match_time).toLocaleString("en-GB", { weekday: "short", hour: "2-digit", minute: "2-digit" }),
         status: m.status,
         teams: [],
         players: [],

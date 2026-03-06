@@ -48,7 +48,7 @@ export default function App() {
       case "explore":     return <ExploreScreen onMatchClick={handleMatchClick} />;
       case "create":      return <CreateScreen />;
       case "chat":        return <ChatScreen />;
-      case "profile":     return <ProfileScreen />;
+      case "profile":     return <ProfileScreen onSignOut={() => setGuestMode(false)} />;
       case "matchDetail": return <MatchDetailScreen match={selectedMatch} onBack={handleBack} />;
       default:            return <HomeScreen onMatchClick={handleMatchClick} />;
     }

@@ -25,6 +25,11 @@ const ChatScreen = () => {
   const [messages, setMessages] = useState(defaultMessages);
   const bottomRef = useRef(null);
 
+  // Auto-scroll to bottom on mount and whenever tab switches
+  useEffect(() => {
+    setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "auto" }), 50);
+  }, [chatType]);
+
   const sendMessage = () => {
     if (!inputVal.trim()) return;
 

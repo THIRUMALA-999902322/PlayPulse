@@ -77,7 +77,7 @@ const CreateScreen = () => {
           <div style={{ fontSize: 12, color: theme.textMuted, marginTop: 4 }}>📍 {location || "Location set"}</div>
           <div style={{ fontSize: 12, color: theme.textMuted, marginTop: 2 }}>Auto-expires in 3 hours if not filled</div>
         </div>
-        <button className="submit-btn" style={{ width: "100%" }} onClick={() => { setSubmitted(false); setTitle(""); setDate(""); setTime(""); setLocation(""); setRules(""); }}>
+        <button className="submit-btn" style={{ width: "100%" }} onClick={() => { setSubmitted(false); setTitle(""); setDate(""); setTime(""); setLocation(""); setRules(""); setSelectedSport("Cricket"); setMatchType("Friendly"); setGearNeeded(["Ball"]); setApprovalMode(false); setPrivacy("Public"); setPlayersNeeded(10); }}>
           Post Another
         </button>
       </div>

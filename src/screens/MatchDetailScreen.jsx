@@ -45,7 +45,7 @@ const MatchDetailScreen = ({ match, onBack }) => {
             <path d="M19 12H5M12 19l-7-7 7-7"/>
           </svg>
         </div>
-        <div className="match-hero-sport">{match.emoji} {match.sport} · {match.distance} away</div>
+        <div className="match-hero-sport">{match.emoji} {match.sport} · {match.distance === "Nearby" ? "Nearby" : `${match.distance} away`}</div>
         <div className="match-hero-title">{match.title}</div>
         <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap", alignItems: "center" }}>
           <StatusBadge status={match.status} />

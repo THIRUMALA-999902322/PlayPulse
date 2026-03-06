@@ -2,10 +2,18 @@ import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { theme } from "../styles/theme";
 
-const ProfileScreen = () => {
+const ProfileScreen = ({ onSignOut }) => {
   const { user, signOut } = useAuth();
   const [activeTab, setActiveTab] = useState("cricket");
   const tabs = [["cricket", "🏏"], ["football", "⚽"], ["matches", "📋"]];
+
+  const handleSignOut = async () => {
+    if (!user && onSignOut) {
+      onSignOut(); // guest mode: reset to auth screen
+    } else {
+      await signOut();
+    }
+  };
 
   const username = user?.user_metadata?.username || user?.email?.split("@")[0] || "Player";
   const initials = username.slice(0, 2).toUpperCase();
@@ -39,10 +47,10 @@ const ProfileScreen = () => {
           <button className="profile-edit-btn">Edit Profile</button>
           <button
             className="profile-edit-btn"
-            style={{ color: theme.danger, borderColor: theme.danger + "40" }}
-            onClick={signOut}
+            style={{ color: user ? theme.danger : theme.accent, borderColor: user ? theme.danger + "40" : theme.accent + "40" }}
+            onClick={handleSignOut}
           >
-            Sign Out
+            {user ? "Sign Out" : "Sign In"}
           </button>
         </div>
       </div>
