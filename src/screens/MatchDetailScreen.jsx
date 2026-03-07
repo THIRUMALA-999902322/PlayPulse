@@ -5,36 +5,57 @@ import { mockCommentary } from "../data/mockData";
 import StatusBadge from "../components/StatusBadge";
 import { theme } from "../styles/theme";
 
-const MatchDetailScreen = ({ match, onBack }) => {
+const MatchDetailScreen = ({ match, onBack, showToast }) => {
   const { user } = useAuth();
-  const [tab, setTab] = useState("info");
+  const [tab, setTab]       = useState("info");
   const [joining, setJoining] = useState(false);
-  const [joined, setJoined] = useState(false);
-  const [checkIns] = useState([
-    { name: "Arjun S.", status: "approved", av: "A", color: "#00F5A0" },
-    { name: "Rahul M.", status: "pending", av: "R", color: "#FFB800" },
-    { name: "Kiran D.", status: "approved", av: "K", color: "#A29BFE" },
-    { name: "Priya L.", status: "pending", av: "P", color: "#FD79A8" },
+  const [joined, setJoined]   = useState(false);
+
+  // Check-in state: track each player's approved status
+  const [checkIns, setCheckIns] = useState([
+    { name: "Arjun S.",  status: "approved", av: "A", color: "#00F5A0" },
+    { name: "Rahul M.",  status: "pending",  av: "R", color: "#FFB800" },
+    { name: "Kiran D.",  status: "approved", av: "K", color: "#A29BFE" },
+    { name: "Priya L.",  status: "pending",  av: "P", color: "#FD79A8" },
   ]);
 
   if (!match) return null;
 
+  // ── JOIN MATCH ──
   const handleJoin = async () => {
-    setJoining(true);
-    if (user) {
-      await supabase.from("match_players").insert({
-        match_id: match.id,
-        user_id: user.id,
-        status: "joined",
-      });
-      // Increment joined count
-      await supabase
-        .from("matches")
-        .update({ players_joined: (match.joined || 0) + 1 })
-        .eq("id", match.id);
+    if (!user) {
+      showToast?.("Sign in to join matches", "warning");
+      return;
     }
+    setJoining(true);
+    await supabase.from("match_players").insert({ match_id: match.id, user_id: user.id, status: "joined" });
+    await supabase.from("matches").update({ players_joined: (match.joined || 0) + 1 }).eq("id", match.id);
     setJoined(true);
     setJoining(false);
+    showToast?.("✓ You joined the match!", "success");
+  };
+
+  // ── SHARE MATCH ──
+  const handleShare = async () => {
+    const shareData = {
+      title: match.title,
+      text:  `Join my match: ${match.title} at ${match.location}`,
+      url:   window.location.href,
+    };
+    if (navigator.share) {
+      try { await navigator.share(shareData); }
+      catch { /* user cancelled */ }
+    } else {
+      // Fallback: copy URL to clipboard
+      await navigator.clipboard.writeText(window.location.href).catch(() => {});
+      showToast?.("🔗 Link copied to clipboard!", "success");
+    }
+  };
+
+  // ── APPROVE CHECK-IN ──
+  const handleApprove = (index) => {
+    setCheckIns(prev => prev.map((c, i) => i === index ? { ...c, status: "approved" } : c));
+    showToast?.(`✓ ${checkIns[index].name} approved`, "success");
   };
 
   return (
@@ -74,6 +95,7 @@ const MatchDetailScreen = ({ match, onBack }) => {
         )}
       </div>
 
+      {/* Tabs */}
       <div className="tabs">
         {[["info", "Info"], ["commentary", "Commentary"], ["checkin", "Check-in"], ["fundraise", "Fundraise"]].map(([k, l]) => (
           <button key={k} className={`tab ${tab === k ? "active" : ""}`} onClick={() => setTab(k)}>{l}</button>
@@ -81,22 +103,31 @@ const MatchDetailScreen = ({ match, onBack }) => {
       </div>
 
       <div className="section">
+
+        {/* ── INFO TAB ── */}
         {tab === "info" && (
           <>
             <div style={{ fontSize: 13, color: theme.textMuted, lineHeight: 1.7, marginBottom: 16 }}>
               Open pickup match at {match.location}. Everyone welcome — bring your A-game. Fair play rules apply. Ball provided.
             </div>
-            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 20 }}>
+            <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
               {joined ? (
-                <button className="submit-btn" style={{ flex: 1, marginTop: 0, marginRight: 8, background: theme.bgElevated, color: theme.accent, boxShadow: "none" }}>
+                <button className="submit-btn" style={{ flex: 1, marginTop: 0, background: theme.bgElevated, color: theme.accent, boxShadow: "none" }}>
                   ✓ Joined!
                 </button>
               ) : (
-                <button className="submit-btn" style={{ flex: 1, marginTop: 0, marginRight: 8 }} onClick={handleJoin} disabled={joining || match.status === "full"}>
+                <button className="submit-btn" style={{ flex: 1, marginTop: 0 }} onClick={handleJoin} disabled={joining || match.status === "full"}>
                   {joining ? "Joining..." : match.status === "full" ? "Match Full" : "✓ Join Match"}
                 </button>
               )}
-              <button style={{ padding: "12px 20px", background: theme.bgCard, border: `1px solid ${theme.border}`, borderRadius: 14, color: theme.textMuted, cursor: "pointer", fontFamily: "Outfit, sans-serif", fontSize: 14 }}>
+              <button
+                onClick={handleShare}
+                style={{ padding: "12px 20px", background: theme.bgCard, border: `1px solid ${theme.border}`, borderRadius: 14, color: theme.text, cursor: "pointer", fontFamily: "Outfit, sans-serif", fontSize: 14, display: "flex", alignItems: "center", gap: 6 }}
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+                  <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+                </svg>
                 Share
               </button>
             </div>
@@ -116,9 +147,17 @@ const MatchDetailScreen = ({ match, onBack }) => {
                 <button className="checkin-btn checked">✓ In</button>
               </div>
             ))}
+
+            {/* Map preview for this match */}
+            {(match.lat || match.lng) && (
+              <div style={{ marginTop: 16, borderRadius: 12, overflow: "hidden", height: 120, background: theme.bgCard, border: `1px solid ${theme.border}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <span style={{ color: theme.textMuted, fontSize: 12 }}>📍 View on map ↑</span>
+              </div>
+            )}
           </>
         )}
 
+        {/* ── COMMENTARY TAB ── */}
         {tab === "commentary" && (
           <>
             {mockCommentary.map((c, i) => (
@@ -130,6 +169,7 @@ const MatchDetailScreen = ({ match, onBack }) => {
           </>
         )}
 
+        {/* ── CHECK-IN TAB ── */}
         {tab === "checkin" && (
           <>
             <div style={{ fontSize: 12, color: theme.textMuted, marginBottom: 16 }}>
@@ -141,17 +181,24 @@ const MatchDetailScreen = ({ match, onBack }) => {
                   <div className="checkin-av" style={{ background: c.color + "20", color: c.color }}>{c.av}</div>
                   <div>
                     <div className="checkin-name">{c.name}</div>
-                    <div className="checkin-status">{c.status === "approved" ? "✓ Checked in" : "Awaiting approval"}</div>
+                    <div className="checkin-status">
+                      {c.status === "approved" ? "✓ Checked in" : "⏳ Awaiting approval"}
+                    </div>
                   </div>
                 </div>
-                <button className={`checkin-btn ${c.status === "pending" ? "approve" : "checked"}`}>
-                  {c.status === "pending" ? "Approve" : "Approved"}
+                <button
+                  className={`checkin-btn ${c.status === "pending" ? "approve" : "checked"}`}
+                  onClick={() => c.status === "pending" && handleApprove(i)}
+                  disabled={c.status === "approved"}
+                >
+                  {c.status === "pending" ? "Approve" : "Approved ✓"}
                 </button>
               </div>
             ))}
           </>
         )}
 
+        {/* ── FUNDRAISE TAB ── */}
         {tab === "fundraise" && (
           <>
             <div className="fund-card">
@@ -170,15 +217,18 @@ const MatchDetailScreen = ({ match, onBack }) => {
                 <span>12 donors · 3 days left</span>
               </div>
               <div className="donors-row">
-                {[["A", "#00F5A0"], ["R", "#FFB800"], ["K", "#A29BFE"], ["M", "#FD79A8"], ["P", "#FF6B6B"]].map(([l, c], i) => (
+                {[["A","#00F5A0"],["R","#FFB800"],["K","#A29BFE"],["M","#FD79A8"],["P","#FF6B6B"]].map(([l,c],i) => (
                   <div key={i} className="donor-chip">
-                    <div className="donor-av" style={{ background: c + "30", color: c }}>{l}</div>
+                    <div className="donor-av" style={{ background: c+"30", color: c }}>{l}</div>
                     Donor {l}
                   </div>
                 ))}
                 <div className="donor-chip">+7 more</div>
               </div>
-              <button className="submit-btn" style={{ marginTop: 14, padding: "12px" }}>💛 Donate</button>
+              <button className="submit-btn" style={{ marginTop: 14, padding: "12px" }}
+                onClick={() => showToast?.("💛 Donations coming soon! We're setting up payment processing.", "info")}>
+                💛 Donate
+              </button>
             </div>
 
             <div className="fund-card">
@@ -196,7 +246,8 @@ const MatchDetailScreen = ({ match, onBack }) => {
                 <span className="fund-raised">£20 raised</span>
                 <span>5 donors</span>
               </div>
-              <button className="submit-btn" style={{ marginTop: 14, padding: "12px", background: theme.accentSecondary, boxShadow: `0 0 20px ${theme.accentSecondary}40` }}>
+              <button className="submit-btn" style={{ marginTop: 14, padding: "12px", background: theme.accentSecondary, boxShadow: `0 0 20px ${theme.accentSecondary}40` }}
+                onClick={() => showToast?.("💜 Donations coming soon! We're setting up payment processing.", "info")}>
                 💜 Contribute
               </button>
             </div>

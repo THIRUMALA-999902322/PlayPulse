@@ -47,8 +47,14 @@ create table if not exists matches (
   privacy text default 'Public',
   status text default 'open',  -- open | soon | live | full | completed
   created_by uuid references profiles(id),
+  lat double precision,         -- GPS latitude  (set automatically when match is created)
+  lng double precision,         -- GPS longitude (set automatically when match is created)
   created_at timestamptz default now()
 );
+
+-- Add lat/lng to existing matches table (safe to run if table already exists)
+alter table matches add column if not exists lat double precision;
+alter table matches add column if not exists lng double precision;
 
 alter table matches enable row level security;
 
