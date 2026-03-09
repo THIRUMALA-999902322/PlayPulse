@@ -131,8 +131,9 @@ const HomeScreen = ({ onMatchClick, showToast }) => {
         max:      m.players_max || 10,
         needFill: (m.players_max - m.players_joined) >= 2,
         need:     m.players_max - m.players_joined,
-        lat:      m.lat || null,
-        lng:      m.lng || null,
+        lat:        m.lat || null,
+        lng:        m.lng || null,
+        stream_url: m.stream_url || null,
       }));
       setMatches(formatted);
     }

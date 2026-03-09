@@ -55,6 +55,7 @@ create table if not exists matches (
 -- Add lat/lng to existing matches table (safe to run if table already exists)
 alter table matches add column if not exists lat double precision;
 alter table matches add column if not exists lng double precision;
+alter table matches add column if not exists stream_url text;
 
 alter table matches enable row level security;
 

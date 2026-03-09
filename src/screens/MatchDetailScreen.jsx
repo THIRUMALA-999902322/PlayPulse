@@ -70,7 +70,15 @@ const MatchDetailScreen = ({ match, onBack, showToast }) => {
         <div className="match-hero-title">{match.title}</div>
         <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap", alignItems: "center" }}>
           <StatusBadge status={match.status} />
-          {match.status === "live" && <span className="stream-badge">▶ STREAMING</span>}
+          {match.status === "live" && (
+            <span
+              className={`stream-badge${match.stream_url ? " clickable" : ""}`}
+              onClick={() => match.stream_url && window.open(match.stream_url, "_blank")}
+              title={match.stream_url ? "Watch live on YouTube" : "Live match"}
+            >
+              ▶ {match.stream_url ? "WATCH LIVE" : "STREAMING"}
+            </span>
+          )}
           <span style={{ fontSize: 11, color: theme.textMuted }}>📍 {match.location}</span>
           <span style={{ fontSize: 11, color: theme.textMuted }}>🕐 {match.time}</span>
         </div>

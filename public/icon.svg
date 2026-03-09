@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Dark background with rounded corners -->
+  <rect width="512" height="512" rx="108" fill="#080B14"/>
+  <!-- Outer glow ring -->
+  <circle cx="256" cy="256" r="195" fill="none" stroke="#00F5A0" stroke-width="6" opacity="0.25"/>
+  <!-- Lightning bolt — PlayPulse symbol -->
+  <path d="M295 72 L148 272 H236 L210 440 L374 228 H272 Z"
+        fill="#00F5A0"
+        filter="drop-shadow(0 0 18px #00F5A080)"/>
+  <!-- Small pulse dot -->
+  <circle cx="256" cy="460" r="8" fill="#00F5A0" opacity="0.5"/>
+</svg>

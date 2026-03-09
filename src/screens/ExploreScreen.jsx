@@ -30,8 +30,9 @@ const ExploreScreen = ({ onMatchClick, showToast }) => {
         status:   m.status,
         teams:    [],
         players:  [],
-        joined:   m.players_joined || 0,
-        max:      m.players_max || 10,
+        joined:     m.players_joined || 0,
+        max:        m.players_max || 10,
+        stream_url: m.stream_url || null,
       })));
     }
 

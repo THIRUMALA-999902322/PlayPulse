@@ -2,13 +2,23 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <meta name="theme-color" content="#080B14" />
-    <meta name="description" content="Find pickup sports games near you" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="theme-color" content="#00F5A0" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="description" content="Find and join pickup sports games near you — cricket, football, basketball and more." />
     <title>PlayPulse</title>
-    <style>
-      body { margin: 0; background: #080B14; }
-    </style>
+    <!-- PWA -->
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="PlayPulse" />
+    <link rel="apple-touch-icon" href="/icon.svg" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+    <!-- Open Graph -->
+    <meta property="og:title"       content="PlayPulse — Find pickup games near you" />
+    <meta property="og:description" content="Join live cricket, football, basketball matches near you." />
+    <meta property="og:type"        content="website" />
+    <style>body { margin: 0; background: #080B14; }</style>
   </head>
   <body>
     <div id="root"></div>

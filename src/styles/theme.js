@@ -404,6 +404,23 @@ export const globalStyles = `
   .form-input { width: 100%; background: ${theme.bgCard}; border: 1.5px solid ${theme.border}; border-radius: 12px; padding: 12px 16px; font-size: 14px; color: ${theme.text}; font-family: 'Outfit', sans-serif; transition: border-color 0.2s; outline: none; }
   .form-input:focus { border-color: ${theme.accent}; }
   .form-input::placeholder { color: ${theme.textDim}; }
+
+  /* ── Date/Time input fix ──
+     Without color-scheme:dark, Chrome renders the day/month/year segments
+     in light mode on a dark background — they become invisible and keyboard
+     entry appears broken (PgUp/PgDn work but number keys don't visibly register).
+     This one property fixes keyboard typing, segment visibility, and the icon. */
+  input[type="date"],
+  input[type="time"],
+  input[type="datetime-local"] {
+    color-scheme: dark;
+  }
+  input[type="date"]::-webkit-calendar-picker-indicator,
+  input[type="time"]::-webkit-calendar-picker-indicator {
+    filter: invert(0.7) sepia(1) saturate(3) hue-rotate(100deg);
+    cursor: pointer;
+    opacity: 0.85;
+  }
   .form-select { width: 100%; background: ${theme.bgCard}; border: 1.5px solid ${theme.border}; border-radius: 12px; padding: 12px 16px; font-size: 14px; color: ${theme.text}; font-family: 'Outfit', sans-serif; outline: none; appearance: none; cursor: pointer; transition: border-color 0.2s; }
   .form-select:focus { border-color: ${theme.accent}; }
 
@@ -447,6 +464,8 @@ export const globalStyles = `
   .rely-badge.reliable { background: #00F5A015; color: ${theme.accent}; }
   .rely-badge.average { background: #FFB80015; color: ${theme.warning}; }
   .stream-badge { display: inline-flex; align-items: center; gap: 5px; background: #FF000020; color: #FF4444; border-radius: 6px; padding: 3px 9px; font-size: 10px; font-weight: 700; }
+  .stream-badge.clickable { cursor: pointer; transition: all 0.2s; border: 1px solid #FF444440; }
+  .stream-badge.clickable:hover { background: #FF000035; transform: scale(1.04); }
 
   /* League card */
   .league-card { background: ${theme.bgCard}; border: 1px solid ${theme.border}; border-radius: 16px; padding: 16px; margin-bottom: 12px; cursor: pointer; transition: all 0.2s; display: flex; gap: 14px; align-items: center; }
