@@ -500,6 +500,36 @@ export const globalStyles = `
   .donor-chip { background: ${theme.bgElevated}; border-radius: 20px; padding: 4px 10px 4px 6px; display: flex; align-items: center; gap: 5px; font-size: 11px; color: ${theme.textMuted}; }
   .donor-av { width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 700; }
 
+  /* Leaderboard */
+  .lb-row { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid ${theme.border}; }
+  .lb-rank { width: 28px; text-align: center; font-size: 14px; font-weight: 800; color: ${theme.textMuted}; flex-shrink: 0; }
+  .lb-rank.gold   { color: #FFD700; }
+  .lb-rank.silver { color: #C0C0C0; }
+  .lb-rank.bronze { color: #CD7F32; }
+  .lb-avatar { width: 40px; height: 40px; border-radius: 12px; background: ${theme.bgElevated}; display: flex; align-items: center; justify-content: center; font-size: 17px; font-weight: 800; color: ${theme.accent}; flex-shrink: 0; border: 1.5px solid ${theme.border}; font-family: 'Bebas Neue', sans-serif; }
+  .lb-info { flex: 1; min-width: 0; }
+  .lb-name { font-size: 13px; font-weight: 700; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .lb-sub  { font-size: 11px; color: ${theme.textMuted}; }
+  .lb-score { text-align: right; flex-shrink: 0; }
+  .lb-score-val   { font-size: 17px; font-weight: 800; color: ${theme.accent}; line-height: 1; }
+  .lb-score-label { font-size: 9px; color: ${theme.textMuted}; font-weight: 500; }
+
+  /* Notif count badge */
+  .notif-count {
+    position: absolute; top: 4px; right: 4px;
+    min-width: 15px; height: 15px;
+    background: ${theme.danger};
+    border-radius: 8px;
+    border: 2px solid ${theme.bg};
+    display: flex; align-items: center; justify-content: center;
+    font-size: 8px; font-weight: 800; color: white;
+    padding: 0 2px;
+    line-height: 1;
+  }
+
+  /* Explore tabs */
+  .explore-tabs { display: flex; border-bottom: 1px solid ${theme.border}; padding: 0 20px; background: ${theme.bg}; position: sticky; top: 57px; z-index: 10; }
+
   /* Misc */
   .divider { height: 1px; background: ${theme.border}; margin: 4px 0; }
   .empty-state { text-align: center; padding: 40px 20px; color: ${theme.textMuted}; }

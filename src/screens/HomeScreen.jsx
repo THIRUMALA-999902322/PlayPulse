@@ -70,7 +70,7 @@ const jitter = (i) => {
   return offsets[i % offsets.length];
 };
 
-const HomeScreen = ({ onMatchClick, showToast }) => {
+const HomeScreen = ({ onMatchClick, showToast, onNavigate }) => {
   const [activeSport, setActiveSport] = useState("All");
   const [matches, setMatches]         = useState(mockMatches);
   const [userPos, setUserPos]         = useState(null);
@@ -109,6 +109,35 @@ const HomeScreen = ({ onMatchClick, showToast }) => {
 
   useEffect(() => { fetchMatches(); }, []);
 
+  // Realtime: live-update player counts + status without a page refresh
+  useEffect(() => {
+    const channel = supabase
+      .channel("home-matches-rt")
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "matches" },
+        (payload) => {
+          setMatches(prev =>
+            prev.map(m =>
+              m.id === payload.new.id
+                ? {
+                    ...m,
+                    joined:   payload.new.players_joined,
+                    max:      payload.new.players_max,
+                    status:   payload.new.status,
+                    need:     payload.new.players_max - payload.new.players_joined,
+                    needFill: (payload.new.players_max - payload.new.players_joined) >= 2,
+                  }
+                : m
+            )
+          );
+        }
+      )
+      .subscribe();
+
+    return () => supabase.removeChannel(channel);
+  }, []);
+
   const fetchMatches = async () => {
     const { data, error } = await supabase
       .from("matches")
@@ -134,6 +163,7 @@ const HomeScreen = ({ onMatchClick, showToast }) => {
         lat:        m.lat || null,
         lng:        m.lng || null,
         stream_url: m.stream_url || null,
+        created_by: m.created_by || null,
       }));
       setMatches(formatted);
     }
@@ -180,8 +210,8 @@ const HomeScreen = ({ onMatchClick, showToast }) => {
             )}
           </div>
 
-          {/* Notification bell */}
-          <div className="icon-btn" style={{ position: "relative" }} onClick={() => showToast("🔔 No new notifications", "info")}>
+          {/* Notification bell → navigates to Notifications screen */}
+          <div className="icon-btn" style={{ position: "relative" }} onClick={() => onNavigate?.("notifications")}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
               <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
               <path d="M13.73 21a2 2 0 0 1-3.46 0"/>

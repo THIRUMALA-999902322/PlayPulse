@@ -10,6 +10,7 @@ const CreateScreen = ({ showToast }) => {
   const [gearNeeded, setGearNeeded]       = useState(["Ball"]);
   const [approvalMode, setApprovalMode]   = useState(false);
   const [privacy, setPrivacy]             = useState("Public");
+  const [recurrence, setRecurrence]       = useState("Once");
   const [submitted, setSubmitted]         = useState(false);
   const [loading, setLoading]             = useState(false);
   const [error, setError]                 = useState("");
@@ -81,6 +82,7 @@ const CreateScreen = ({ showToast }) => {
       gear_needed:    gearNeeded,
       approval_mode:  approvalMode,
       privacy,
+      recurrence,
       status:         "open",
       created_by:     user?.id || null,
       lat,
@@ -101,6 +103,7 @@ const CreateScreen = ({ showToast }) => {
     setSelectedSport("Cricket"); setMatchType("Friendly");
     setGearNeeded(["Ball"]); setApprovalMode(false);
     setPrivacy("Public"); setPlayersNeeded(10);
+    setRecurrence("Once");
     setYoutubeEnabled(false); setYoutubeUrl(""); setInAppStream(false);
   };
 
@@ -212,6 +215,21 @@ const CreateScreen = ({ showToast }) => {
         <div className="form-group">
           <label className="form-label">Rules & Safety</label>
           <textarea className="form-input" rows={3} placeholder="Fair play rules, safety instructions..." style={{ resize: "none", lineHeight: 1.5 }} value={rules} onChange={e => setRules(e.target.value)} />
+        </div>
+
+        {/* Recurrence */}
+        <div className="form-group">
+          <label className="form-label">Recurrence</label>
+          <div className="toggle-group">
+            {["Once", "Weekly", "Biweekly", "Monthly"].map(r => (
+              <button key={r} className={`toggle-btn ${recurrence === r ? "on" : ""}`} onClick={() => setRecurrence(r)}>{r}</button>
+            ))}
+          </div>
+          {recurrence !== "Once" && (
+            <div style={{ fontSize: 11, color: theme.textMuted, marginTop: 6 }}>
+              ♻️ This match will auto-repeat {recurrence.toLowerCase()} at the same time &amp; location.
+            </div>
+          )}
         </div>
 
         {/* Gear */}

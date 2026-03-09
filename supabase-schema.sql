@@ -56,6 +56,7 @@ create table if not exists matches (
 alter table matches add column if not exists lat double precision;
 alter table matches add column if not exists lng double precision;
 alter table matches add column if not exists stream_url text;
+alter table matches add column if not exists recurrence text default 'Once';
 
 alter table matches enable row level security;
 
@@ -152,6 +153,27 @@ create policy "Fundraisers viewable by everyone"
 
 create policy "Authenticated users can create fundraisers"
   on fundraisers for insert with check (auth.role() = 'authenticated');
+
+
+-- 7. Player Ratings (post-match)
+create table if not exists player_ratings (
+  id uuid default gen_random_uuid() primary key,
+  match_id  uuid references matches(id)  on delete cascade,
+  rater_id  uuid references profiles(id) on delete cascade,
+  rated_id  uuid references profiles(id) on delete cascade,
+  rating    integer check (rating >= 1 and rating <= 5),
+  comment   text,
+  created_at timestamptz default now(),
+  unique(match_id, rater_id, rated_id)
+);
+
+alter table player_ratings enable row level security;
+
+create policy "Ratings viewable by authenticated users"
+  on player_ratings for select using (auth.role() = 'authenticated');
+
+create policy "Authenticated users can submit ratings"
+  on player_ratings for insert with check (auth.role() = 'authenticated' and auth.uid() = rater_id);
 
 
 -- =============================================

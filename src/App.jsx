@@ -9,6 +9,7 @@ import CreateScreen from "./screens/CreateScreen";
 import ChatScreen from "./screens/ChatScreen";
 import ProfileScreen from "./screens/ProfileScreen";
 import MatchDetailScreen from "./screens/MatchDetailScreen";
+import NotificationsScreen from "./screens/NotificationsScreen";
 import Toast from "./components/Toast";
 
 const icons = {
@@ -50,13 +51,14 @@ export default function App() {
 
   const renderScreen = () => {
     switch (screen) {
-      case "home":        return <HomeScreen onMatchClick={handleMatchClick} showToast={showToast} />;
+      case "home":        return <HomeScreen onMatchClick={handleMatchClick} showToast={showToast} onNavigate={setScreen} />;
       case "explore":     return <ExploreScreen onMatchClick={handleMatchClick} showToast={showToast} />;
       case "create":      return <CreateScreen showToast={showToast} />;
       case "chat":        return <ChatScreen showToast={showToast} />;
       case "profile":     return <ProfileScreen onSignOut={() => setGuestMode(false)} showToast={showToast} />;
-      case "matchDetail": return <MatchDetailScreen match={selectedMatch} onBack={handleBack} showToast={showToast} />;
-      default:            return <HomeScreen onMatchClick={handleMatchClick} showToast={showToast} />;
+      case "matchDetail":    return <MatchDetailScreen match={selectedMatch} onBack={handleBack} showToast={showToast} />;
+      case "notifications":  return <NotificationsScreen showToast={showToast} />;
+      default:               return <HomeScreen onMatchClick={handleMatchClick} showToast={showToast} onNavigate={setScreen} />;
     }
   };
 
