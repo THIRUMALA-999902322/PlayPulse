@@ -49,6 +49,11 @@ export const globalStyles = `
     to { opacity: 1; transform: translateY(0); }
   }
 
+  @keyframes toastIn {
+    from { opacity: 0; transform: translateX(-50%) translateY(-12px); }
+    to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+  }
+
   @keyframes pulse {
     0%, 100% { opacity: 1; transform: scale(1); }
     50% { opacity: 0.7; transform: scale(0.97); }
@@ -399,6 +404,23 @@ export const globalStyles = `
   .form-input { width: 100%; background: ${theme.bgCard}; border: 1.5px solid ${theme.border}; border-radius: 12px; padding: 12px 16px; font-size: 14px; color: ${theme.text}; font-family: 'Outfit', sans-serif; transition: border-color 0.2s; outline: none; }
   .form-input:focus { border-color: ${theme.accent}; }
   .form-input::placeholder { color: ${theme.textDim}; }
+
+  /* ── Date/Time input fix ──
+     Without color-scheme:dark, Chrome renders the day/month/year segments
+     in light mode on a dark background — they become invisible and keyboard
+     entry appears broken (PgUp/PgDn work but number keys don't visibly register).
+     This one property fixes keyboard typing, segment visibility, and the icon. */
+  input[type="date"],
+  input[type="time"],
+  input[type="datetime-local"] {
+    color-scheme: dark;
+  }
+  input[type="date"]::-webkit-calendar-picker-indicator,
+  input[type="time"]::-webkit-calendar-picker-indicator {
+    filter: invert(0.7) sepia(1) saturate(3) hue-rotate(100deg);
+    cursor: pointer;
+    opacity: 0.85;
+  }
   .form-select { width: 100%; background: ${theme.bgCard}; border: 1.5px solid ${theme.border}; border-radius: 12px; padding: 12px 16px; font-size: 14px; color: ${theme.text}; font-family: 'Outfit', sans-serif; outline: none; appearance: none; cursor: pointer; transition: border-color 0.2s; }
   .form-select:focus { border-color: ${theme.accent}; }
 
@@ -442,6 +464,8 @@ export const globalStyles = `
   .rely-badge.reliable { background: #00F5A015; color: ${theme.accent}; }
   .rely-badge.average { background: #FFB80015; color: ${theme.warning}; }
   .stream-badge { display: inline-flex; align-items: center; gap: 5px; background: #FF000020; color: #FF4444; border-radius: 6px; padding: 3px 9px; font-size: 10px; font-weight: 700; }
+  .stream-badge.clickable { cursor: pointer; transition: all 0.2s; border: 1px solid #FF444440; }
+  .stream-badge.clickable:hover { background: #FF000035; transform: scale(1.04); }
 
   /* League card */
   .league-card { background: ${theme.bgCard}; border: 1px solid ${theme.border}; border-radius: 16px; padding: 16px; margin-bottom: 12px; cursor: pointer; transition: all 0.2s; display: flex; gap: 14px; align-items: center; }
@@ -475,6 +499,36 @@ export const globalStyles = `
   .donors-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 12px; }
   .donor-chip { background: ${theme.bgElevated}; border-radius: 20px; padding: 4px 10px 4px 6px; display: flex; align-items: center; gap: 5px; font-size: 11px; color: ${theme.textMuted}; }
   .donor-av { width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 700; }
+
+  /* Leaderboard */
+  .lb-row { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid ${theme.border}; }
+  .lb-rank { width: 28px; text-align: center; font-size: 14px; font-weight: 800; color: ${theme.textMuted}; flex-shrink: 0; }
+  .lb-rank.gold   { color: #FFD700; }
+  .lb-rank.silver { color: #C0C0C0; }
+  .lb-rank.bronze { color: #CD7F32; }
+  .lb-avatar { width: 40px; height: 40px; border-radius: 12px; background: ${theme.bgElevated}; display: flex; align-items: center; justify-content: center; font-size: 17px; font-weight: 800; color: ${theme.accent}; flex-shrink: 0; border: 1.5px solid ${theme.border}; font-family: 'Bebas Neue', sans-serif; }
+  .lb-info { flex: 1; min-width: 0; }
+  .lb-name { font-size: 13px; font-weight: 700; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .lb-sub  { font-size: 11px; color: ${theme.textMuted}; }
+  .lb-score { text-align: right; flex-shrink: 0; }
+  .lb-score-val   { font-size: 17px; font-weight: 800; color: ${theme.accent}; line-height: 1; }
+  .lb-score-label { font-size: 9px; color: ${theme.textMuted}; font-weight: 500; }
+
+  /* Notif count badge */
+  .notif-count {
+    position: absolute; top: 4px; right: 4px;
+    min-width: 15px; height: 15px;
+    background: ${theme.danger};
+    border-radius: 8px;
+    border: 2px solid ${theme.bg};
+    display: flex; align-items: center; justify-content: center;
+    font-size: 8px; font-weight: 800; color: white;
+    padding: 0 2px;
+    line-height: 1;
+  }
+
+  /* Explore tabs */
+  .explore-tabs { display: flex; border-bottom: 1px solid ${theme.border}; padding: 0 20px; background: ${theme.bg}; position: sticky; top: 57px; z-index: 10; }
 
   /* Misc */
   .divider { height: 1px; background: ${theme.border}; margin: 4px 0; }
@@ -558,4 +612,19 @@ export const globalStyles = `
     color: ${theme.danger};
     margin-bottom: 16px;
   }
+
+  /* ── Leaflet dark theme overrides ── */
+  .leaflet-popup-content-wrapper {
+    background: ${theme.bgElevated};
+    color: ${theme.text};
+    border: 1px solid ${theme.border};
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+  }
+  .leaflet-popup-tip { background: ${theme.bgElevated}; }
+  .leaflet-popup-content { margin: 10px 14px; font-family: 'Outfit', sans-serif; }
+  .leaflet-popup-close-button { color: ${theme.textMuted} !important; }
+  .leaflet-popup-close-button:hover { color: ${theme.text} !important; }
+  .leaflet-container { font-family: 'Outfit', sans-serif; }
+  .leaflet-control-attribution { display: none; }
 `;
