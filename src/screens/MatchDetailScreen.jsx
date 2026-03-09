@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../context/AuthContext";
-import { mockCommentary } from "../data/mockData";
 import StatusBadge from "../components/StatusBadge";
 import { theme } from "../styles/theme";
 
@@ -37,13 +36,10 @@ const MatchDetailScreen = ({ match, onBack, showToast }) => {
   const [newTime, setNewTime] = useState("");
   const [rescheduling, setRescheduling] = useState(false);
 
-  // Check-in state
-  const [checkIns, setCheckIns] = useState([
-    { name: "Arjun S.",  status: "approved", av: "A", color: "#00F5A0" },
-    { name: "Rahul M.",  status: "pending",  av: "R", color: "#FFB800" },
-    { name: "Kiran D.",  status: "approved", av: "K", color: "#A29BFE" },
-    { name: "Priya L.",  status: "pending",  av: "P", color: "#FD79A8" },
-  ]);
+  // Check-in state — fetched from Supabase
+  const [checkIns, setCheckIns]     = useState([]);
+  const [fundraisers, setFundraisers] = useState([]);
+  const [loadingCheckins, setLoadingCheckins] = useState(false);
 
   const isCreator = user && match?.created_by === user.id;
 
@@ -95,6 +91,35 @@ const MatchDetailScreen = ({ match, onBack, showToast }) => {
     fetchWeather();
   }, [match?.id]);
 
+  // ── Fetch real check-ins from match_players ─────────────────────────────
+  useEffect(() => {
+    if (!match?.id) return;
+    setLoadingCheckins(true);
+    const fetchCheckins = async () => {
+      const { data } = await supabase
+        .from("match_players")
+        .select("user_id, status, profiles(username, reliability_score)")
+        .eq("match_id", match.id);
+      setCheckIns(data || []);
+      setLoadingCheckins(false);
+    };
+    fetchCheckins();
+  }, [match?.id]);
+
+  // ── Fetch real fundraisers ───────────────────────────────────────────────
+  useEffect(() => {
+    if (!match?.id) return;
+    const fetchFundraisers = async () => {
+      const { data } = await supabase
+        .from("fundraisers")
+        .select("*")
+        .eq("match_id", match.id)
+        .order("created_at", { ascending: false });
+      setFundraisers(data || []);
+    };
+    fetchFundraisers();
+  }, [match?.id]);
+
   if (!match) return null;
 
   // ── Join Match ──────────────────────────────────────────────────────────
@@ -137,9 +162,14 @@ const MatchDetailScreen = ({ match, onBack, showToast }) => {
   };
 
   // ── Approve Check-in ───────────────────────────────────────────────────
-  const handleApprove = (i) => {
-    setCheckIns(prev => prev.map((c, idx) => idx === i ? { ...c, status: "approved" } : c));
-    showToast?.(`✓ ${checkIns[i].name} approved`, "success");
+  const handleApprove = async (userId, username) => {
+    await supabase
+      .from("match_players")
+      .update({ status: "approved" })
+      .eq("match_id", match.id)
+      .eq("user_id", userId);
+    setCheckIns(prev => prev.map(c => c.user_id === userId ? { ...c, status: "approved" } : c));
+    showToast?.(`✓ ${username || "Player"} approved`, "success");
   };
 
   const wInfo = weather ? weatherInfo(weather.weathercode) : null;
@@ -271,9 +301,11 @@ const MatchDetailScreen = ({ match, onBack, showToast }) => {
               </div>
             )}
 
-            <div style={{ fontSize: 13, color: theme.textMuted, lineHeight: 1.7, marginBottom: 16 }}>
-              Open pickup match at {match.location}. Everyone welcome — bring your A-game. Fair play rules apply. Ball provided.
-            </div>
+            {match.rules ? (
+              <div style={{ fontSize: 13, color: theme.textMuted, lineHeight: 1.7, marginBottom: 16 }}>
+                {match.rules}
+              </div>
+            ) : null}
 
             <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
               {joined ? (
@@ -331,64 +363,121 @@ const MatchDetailScreen = ({ match, onBack, showToast }) => {
         )}
 
         {/* ── COMMENTARY TAB ── */}
-        {tab === "commentary" && mockCommentary.map((c, i) => (
-          <div key={i} className="commentary-item">
-            <div className={`over-badge ${c.type}`}>{c.over}</div>
-            <div className="commentary-text" dangerouslySetInnerHTML={{ __html: c.text }} />
-          </div>
-        ))}
+        {tab === "commentary" && (
+          liveStatus === "live" ? (
+            <div className="empty-state">
+              <div className="empty-icon">🎙️</div>
+              <div className="empty-text">Live commentary coming soon</div>
+              <div style={{ fontSize: 12, color: theme.textDim, marginTop: 6 }}>
+                Ball-by-ball updates will appear here during live matches
+              </div>
+            </div>
+          ) : (
+            <div className="empty-state">
+              <div className="empty-icon">📋</div>
+              <div className="empty-text">No commentary yet</div>
+              <div style={{ fontSize: 12, color: theme.textDim, marginTop: 6 }}>
+                Commentary is available for live matches
+              </div>
+            </div>
+          )
+        )}
 
         {/* ── CHECK-IN TAB ── */}
         {tab === "checkin" && (
-          <>
-            <div style={{ fontSize: 12, color: theme.textMuted, marginBottom: 16 }}>
-              Team head approval mode is on. Approve players before they join the roster.
+          loadingCheckins ? (
+            <div style={{ color: theme.textMuted, fontSize: 13, textAlign: "center", padding: 20 }}>Loading players...</div>
+          ) : checkIns.length === 0 ? (
+            <div className="empty-state">
+              <div className="empty-icon">👥</div>
+              <div className="empty-text">No players joined yet</div>
             </div>
-            {checkIns.map((c, i) => (
-              <div key={i} className="checkin-row">
-                <div className="checkin-player">
-                  <div className="checkin-av" style={{ background: c.color + "20", color: c.color }}>{c.av}</div>
-                  <div>
-                    <div className="checkin-name">{c.name}</div>
-                    <div className="checkin-status">{c.status === "approved" ? "✓ Checked in" : "⏳ Awaiting approval"}</div>
-                  </div>
+          ) : (
+            <>
+              {isCreator && (
+                <div style={{ fontSize: 12, color: theme.textMuted, marginBottom: 16 }}>
+                  {checkIns.filter(c => c.status === "joined").length > 0
+                    ? "Some players are awaiting approval."
+                    : "All players have been approved."}
                 </div>
-                <button className={`checkin-btn ${c.status === "pending" ? "approve" : "checked"}`}
-                  onClick={() => c.status === "pending" && handleApprove(i)} disabled={c.status === "approved"}>
-                  {c.status === "pending" ? "Approve" : "Approved ✓"}
-                </button>
-              </div>
-            ))}
-          </>
+              )}
+              {checkIns.map((c) => {
+                const uname = c.profiles?.username || "Player";
+                const initials = uname.slice(0, 2).toUpperCase();
+                const avatarColors = ["#00F5A0", "#FFB800", "#A29BFE", "#FD79A8", "#74B9FF"];
+                const color = avatarColors[(c.user_id?.charCodeAt(0) ?? 0) % avatarColors.length];
+                return (
+                  <div key={c.user_id} className="checkin-row">
+                    <div className="checkin-player">
+                      <div className="checkin-av" style={{ background: color + "20", color }}>{initials}</div>
+                      <div>
+                        <div className="checkin-name">@{uname}</div>
+                        <div className="checkin-status">
+                          {c.status === "approved" || c.status === "checked_in" ? "✓ Checked in"
+                           : c.status === "no_show" ? "✗ No show"
+                           : "⏳ Awaiting approval"}
+                        </div>
+                      </div>
+                    </div>
+                    {isCreator && c.status === "joined" ? (
+                      <button className="checkin-btn approve" onClick={() => handleApprove(c.user_id, uname)}>
+                        Approve
+                      </button>
+                    ) : (
+                      <button className="checkin-btn checked" disabled>
+                        {c.status === "approved" || c.status === "checked_in" ? "✓ In" : c.status}
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </>
+          )
         )}
 
         {/* ── FUNDRAISE TAB ── */}
         {tab === "fundraise" && (
-          <>
-            {[
-              { title: "🏏 New Cricket Kit",  cause: "Equipment · Arjun S.", goal: 120, raised: 88, donors: 12, daysLeft: 3, color: theme.accent },
-              { title: "👨‍⚖️ Hire Umpire",      cause: "Officials · Weekend league", goal: 50, raised: 20, donors: 5, daysLeft: null, color: theme.accentSecondary },
-            ].map((f, fi) => (
-              <div key={fi} className="fund-card">
-                <div className="fund-header">
-                  <div><div className="fund-title">{f.title}</div><div className="fund-cause">{f.cause}</div></div>
-                  <div className="fund-goal-tag">£{f.goal} goal</div>
+          fundraisers.length === 0 ? (
+            <div className="empty-state">
+              <div className="empty-icon">💛</div>
+              <div className="empty-text">No fundraisers for this match</div>
+              {isCreator && (
+                <div style={{ fontSize: 12, color: theme.textDim, marginTop: 6 }}>
+                  Fundraiser creation coming soon
                 </div>
-                <div className="progress-bar">
-                  <div className="progress-fill" style={{ width: `${Math.round(f.raised / f.goal * 100)}%` }} />
+              )}
+            </div>
+          ) : (
+            fundraisers.map((f) => {
+              const pct = f.goal_amount > 0 ? Math.min(100, Math.round((f.raised_amount / f.goal_amount) * 100)) : 0;
+              const daysLeft = f.expires_at ? Math.max(0, Math.ceil((new Date(f.expires_at) - Date.now()) / 86400000)) : null;
+              return (
+                <div key={f.id} className="fund-card">
+                  <div className="fund-header">
+                    <div>
+                      <div className="fund-title">{f.title}</div>
+                      {f.cause && <div className="fund-cause">{f.cause}</div>}
+                    </div>
+                    <div className="fund-goal-tag">£{f.goal_amount} goal</div>
+                  </div>
+                  <div className="progress-bar">
+                    <div className="progress-fill" style={{ width: `${pct}%` }} />
+                  </div>
+                  <div className="fund-stats">
+                    <span className="fund-raised">£{f.raised_amount} raised</span>
+                    <span>{pct}%{daysLeft !== null ? ` · ${daysLeft} days left` : ""}</span>
+                  </div>
+                  <button
+                    className="submit-btn"
+                    style={{ marginTop: 14, padding: "12px", background: theme.accent, boxShadow: `0 0 20px ${theme.accent}40` }}
+                    onClick={() => showToast?.("💛 Donations coming soon! We're setting up payments.", "info")}
+                  >
+                    💛 Donate
+                  </button>
                 </div>
-                <div className="fund-stats">
-                  <span className="fund-raised">£{f.raised} raised</span>
-                  <span>{f.donors} donors{f.daysLeft ? ` · ${f.daysLeft} days left` : ""}</span>
-                </div>
-                <button className="submit-btn"
-                  style={{ marginTop: 14, padding: "12px", background: f.color, boxShadow: `0 0 20px ${f.color}40` }}
-                  onClick={() => showToast?.("💛 Donations coming soon! We're setting up payments.", "info")}>
-                  {fi === 0 ? "💛 Donate" : "💜 Contribute"}
-                </button>
-              </div>
-            ))}
-          </>
+              );
+            })
+          )
         )}
       </div>
     </div>

@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
-import { mockMatches, mockLeagues } from "../data/mockData";
 import MatchCard from "../components/MatchCard";
 import { theme } from "../styles/theme";
 
 const ExploreScreen = ({ onMatchClick, showToast }) => {
-  const [matches, setMatches]         = useState(mockMatches);
-  const [leagues, setLeagues]         = useState(mockLeagues);
+  const [matches, setMatches]         = useState([]);
+  const [leagues, setLeagues]         = useState([]);
+  const [loadingData, setLoadingData] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [showSearch, setShowSearch]   = useState(false);
   const [selectedLeague, setSelectedLeague] = useState(null);
@@ -50,6 +50,7 @@ const ExploreScreen = ({ onMatchClick, showToast }) => {
         sport:   l.sport,
       })));
     }
+    setLoadingData(false);
   };
 
   const fetchLeaderboard = async () => {
@@ -161,6 +162,13 @@ const ExploreScreen = ({ onMatchClick, showToast }) => {
                 Start League
               </button>
             </div>
+            {loadingData ? (
+              <div style={{ color: theme.textMuted, fontSize: 13, padding: "12px 0" }}>Loading...</div>
+            ) : leagues.length === 0 ? (
+              <div className="empty-state" style={{ padding: "12px 0" }}>
+                <div style={{ color: theme.textMuted, fontSize: 13 }}>No leagues yet — start one!</div>
+              </div>
+            ) : null}
             {leagues.map((l, i) => (
               <div
                 key={i}
@@ -198,11 +206,15 @@ const ExploreScreen = ({ onMatchClick, showToast }) => {
                 </button>
               )}
             </div>
-            {displayMatches.length === 0 ? (
+            {loadingData ? (
+              <div className="empty-state">
+                <div style={{ color: theme.textMuted, fontSize: 13 }}>Loading matches...</div>
+              </div>
+            ) : displayMatches.length === 0 ? (
               <div className="empty-state">
                 <div className="empty-icon">🏟️</div>
                 <div className="empty-text">
-                  {searchQuery ? `No matches found for "${searchQuery}"` : "No matches in this league yet"}
+                  {searchQuery ? `No matches found for "${searchQuery}"` : selectedLeague ? "No matches in this league yet" : "No matches yet — create the first one!"}
                 </div>
               </div>
             ) : (

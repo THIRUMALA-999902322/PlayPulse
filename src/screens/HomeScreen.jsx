@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from "react";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 import { supabase } from "../lib/supabase";
-import { mockMatches } from "../data/mockData";
 import MatchCard from "../components/MatchCard";
 import { theme } from "../styles/theme";
 
@@ -72,7 +71,8 @@ const jitter = (i) => {
 
 const HomeScreen = ({ onMatchClick, showToast, onNavigate }) => {
   const [activeSport, setActiveSport] = useState("All");
-  const [matches, setMatches]         = useState(mockMatches);
+  const [matches, setMatches]         = useState([]);
+  const [loadingMatches, setLoadingMatches] = useState(true);
   const [userPos, setUserPos]         = useState(null);
   const [gpsStatus, setGpsStatus]     = useState("loading"); // loading | ok | denied
   const [showSearch, setShowSearch]   = useState(false);
@@ -144,6 +144,7 @@ const HomeScreen = ({ onMatchClick, showToast, onNavigate }) => {
       .select("*")
       .order("created_at", { ascending: false });
 
+    setLoadingMatches(false);
     if (!error && data && data.length > 0) {
       const formatted = data.map(m => ({
         id:       m.id,
@@ -341,11 +342,15 @@ const HomeScreen = ({ onMatchClick, showToast, onNavigate }) => {
             </button>
           )}
         </div>
-        {filtered.length === 0 ? (
+        {loadingMatches ? (
+          <div className="empty-state">
+            <div style={{ color: theme.textMuted, fontSize: 13 }}>Loading matches...</div>
+          </div>
+        ) : filtered.length === 0 ? (
           <div className="empty-state">
             <div className="empty-icon">🏟️</div>
             <div className="empty-text">
-              {searchQuery ? `No matches found for "${searchQuery}"` : `No ${activeSport} matches nearby`}
+              {searchQuery ? `No matches found for "${searchQuery}"` : activeSport !== "All" ? `No ${activeSport} matches nearby` : "No matches yet — create one!"}
             </div>
           </div>
         ) : (

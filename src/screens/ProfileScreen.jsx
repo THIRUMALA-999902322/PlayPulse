@@ -1,17 +1,46 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../context/AuthContext";
 import { theme } from "../styles/theme";
 
+const sportEmoji = { Cricket: "🏏", Football: "⚽", Basketball: "🏀", Badminton: "🏸", Tennis: "🎾" };
+
 const ProfileScreen = ({ onSignOut, showToast }) => {
   const { user, signOut } = useAuth();
-  const [activeTab, setActiveTab] = useState("cricket");
+  const [profile, setProfile]         = useState(null);
+  const [pastMatches, setPastMatches] = useState([]);
+  const [loading, setLoading]         = useState(true);
+  const [activeTab, setActiveTab]     = useState("matches");
   const [showEditModal, setShowEditModal] = useState(false);
   const [editUsername, setEditUsername]   = useState("");
   const [editBio, setEditBio]             = useState("");
   const [saving, setSaving]               = useState(false);
 
-  const tabs = [["cricket", "🏏"], ["football", "⚽"], ["matches", "📋"]];
+  const username = profile?.username || user?.user_metadata?.username || user?.email?.split("@")[0] || "Player";
+  const initials = username.slice(0, 2).toUpperCase();
+
+  // ── Fetch profile + match history ─────────────────────────────────────────
+  useEffect(() => {
+    if (!user) { setLoading(false); return; }
+
+    const fetchData = async () => {
+      const [{ data: prof }, { data: matchData }] = await Promise.all([
+        supabase.from("profiles").select("*").eq("id", user.id).single(),
+        supabase
+          .from("match_players")
+          .select("match_id, status, joined_at, matches(id, title, sport, location, match_time, status)")
+          .eq("user_id", user.id)
+          .order("joined_at", { ascending: false })
+          .limit(30),
+      ]);
+
+      setProfile(prof || null);
+      setPastMatches((matchData || []).map(mp => mp.matches).filter(Boolean));
+      setLoading(false);
+    };
+
+    fetchData();
+  }, [user]);
 
   const handleSignOut = async () => {
     if (!user && onSignOut) {
@@ -23,7 +52,7 @@ const ProfileScreen = ({ onSignOut, showToast }) => {
 
   const openEditModal = () => {
     setEditUsername(username);
-    setEditBio("Campus Player · Cricket & Football enthusiast");
+    setEditBio(profile?.bio || "");
     setShowEditModal(true);
   };
 
@@ -31,51 +60,36 @@ const ProfileScreen = ({ onSignOut, showToast }) => {
     if (!editUsername.trim()) { showToast?.("Username can't be empty", "error"); return; }
     setSaving(true);
     if (user) {
-      const { error } = await supabase.auth.updateUser({
-        data: { username: editUsername.trim(), bio: editBio.trim() },
+      const { error } = await supabase.from("profiles").upsert({
+        id: user.id,
+        username: editUsername.trim(),
+        bio: editBio.trim(),
+        email: user.email,
       });
       setSaving(false);
       if (error) {
         showToast?.("Couldn't save: " + error.message, "error");
       } else {
+        setProfile(prev => ({ ...prev, username: editUsername.trim(), bio: editBio.trim() }));
         setShowEditModal(false);
         showToast?.("✓ Profile updated!", "success");
       }
     } else {
-      // Guest mode — just close
       setSaving(false);
       setShowEditModal(false);
       showToast?.("Sign in to save your profile", "warning");
     }
   };
 
-  const username = user?.user_metadata?.username || user?.email?.split("@")[0] || "Player";
-  const initials = username.slice(0, 2).toUpperCase();
-
-  const cricketStats = [
-    { val: "34",   label: "Matches" }, { val: "1,248", label: "Runs" },
-    { val: "36.7", label: "Average" }, { val: "124",   label: "Strike Rate" },
-    { val: "98",   label: "4s"      }, { val: "42",    label: "6s" },
-  ];
-
-  const footballStats = [
-    { val: "18",  label: "Matches"  }, { val: "CF",  label: "Position" },
-    { val: "11",  label: "Goals"    }, { val: "7",   label: "Assists"  },
-    { val: "82%", label: "Win Rate" }, { val: "4.2", label: "Rating"   },
-  ];
-
-  const pastMatches = [
-    { title: "T10 vs Bolts",     date: "Feb 20", result: "Won",  score: "32 (18)", type: "Batting" },
-    { title: "Campus League R4", date: "Feb 14", result: "Won",  score: "45 (28)", type: "Batting" },
-    { title: "Pickup vs Eagles", date: "Feb 8",  result: "Lost", score: "12 (10)", type: "Batting" },
-  ];
-
-  const stats = activeTab === "cricket" ? cricketStats : activeTab === "football" ? footballStats : [];
+  // Derived stats
+  const matchesPlayed = profile?.matches_played ?? pastMatches.length;
+  const reliabilityScore = profile?.reliability_score ?? 100;
+  const uniqueSports = [...new Set(pastMatches.map(m => m.sport).filter(Boolean))];
 
   return (
     <div className="screen scroll-area">
 
-      {/* Edit Profile Modal */}
+      {/* ── Edit Profile Modal ── */}
       {showEditModal && (
         <div style={{
           position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)",
@@ -92,7 +106,6 @@ const ProfileScreen = ({ onSignOut, showToast }) => {
                 style={{ background: "none", border: "none", color: theme.textMuted, cursor: "pointer", fontSize: 20 }}>✕</button>
             </div>
 
-            {/* Avatar preview */}
             <div style={{ display: "flex", justifyContent: "center", marginBottom: 20 }}>
               <div style={{
                 width: 72, height: 72, borderRadius: "50%",
@@ -132,7 +145,7 @@ const ProfileScreen = ({ onSignOut, showToast }) => {
         </div>
       )}
 
-      {/* Profile cover */}
+      {/* ── Profile cover ── */}
       <div className="profile-cover">
         <div className="profile-cover-bg" />
         <div className="profile-avatar-wrap">
@@ -153,68 +166,119 @@ const ProfileScreen = ({ onSignOut, showToast }) => {
       <div className="profile-info">
         <div className="profile-name">{username}</div>
         <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 10 }}>
-          <span style={{ fontSize: 12, color: theme.textMuted }}>@{username.toLowerCase().replace(" ", "_")} · Campus Player</span>
-          <span className="rely-badge reliable">✓ Reliable</span>
-        </div>
-        <div className="profile-stats">
-          <div className="pstat"><div className="pstat-num">52</div><div className="pstat-label">Matches</div></div>
-          <div className="pstat"><div className="pstat-num">5</div><div className="pstat-label">Leagues</div></div>
-          <div className="pstat"><div className="pstat-num">124</div><div className="pstat-label">Followers</div></div>
-          <div className="pstat"><div className="pstat-num">3</div><div className="pstat-label">Sports</div></div>
+          <span style={{ fontSize: 12, color: theme.textMuted }}>@{username.toLowerCase().replace(/\s+/g, "_")}</span>
+          {profile?.bio && <span style={{ fontSize: 12, color: theme.textMuted }}>· {profile.bio}</span>}
+          {reliabilityScore >= 80 && <span className="rely-badge reliable">✓ Reliable</span>}
         </div>
 
+        {/* Real stats */}
+        <div className="profile-stats">
+          <div className="pstat">
+            <div className="pstat-num">{loading ? "–" : matchesPlayed}</div>
+            <div className="pstat-label">Matches</div>
+          </div>
+          <div className="pstat">
+            <div className="pstat-num">{loading ? "–" : reliabilityScore}%</div>
+            <div className="pstat-label">Reliability</div>
+          </div>
+          <div className="pstat">
+            <div className="pstat-num">{loading ? "–" : uniqueSports.length}</div>
+            <div className="pstat-label">Sports</div>
+          </div>
+          <div className="pstat">
+            <div className="pstat-num">
+              {loading ? "–" : uniqueSports.slice(0, 2).map(s => sportEmoji[s] || "🏅").join(" ") || "–"}
+            </div>
+            <div className="pstat-label">Played</div>
+          </div>
+        </div>
+
+        {/* Tab bar */}
         <div className="tabs" style={{ margin: "0 -20px 0", padding: "0 4px" }}>
-          {tabs.map(([k, l]) => (
-            <button key={k} className={`tab ${activeTab === k ? "active" : ""}`} onClick={() => setActiveTab(k)}>
-              {l} {k.charAt(0).toUpperCase() + k.slice(1)}
-            </button>
-          ))}
+          <button className={`tab ${activeTab === "matches" ? "active" : ""}`} onClick={() => setActiveTab("matches")}>📋 Matches</button>
+          <button className={`tab ${activeTab === "stats" ? "active" : ""}`} onClick={() => setActiveTab("stats")}>📊 Stats</button>
         </div>
 
         <div style={{ marginTop: 16 }}>
-          {activeTab !== "matches" ? (
-            <div className="sport-portfolio">
-              <div className="sport-portfolio-header">
-                <div className="sport-icon-sm">{activeTab === "cricket" ? "🏏" : "⚽"}</div>
-                <div>
-                  <div className="sport-portfolio-title">{activeTab === "cricket" ? "Cricket" : "Football"} Portfolio</div>
-                  <div className="sport-portfolio-sub">{activeTab === "cricket" ? "Right-hand bat · Medium pace" : "Centre Forward · Campus Team"}</div>
-                </div>
+
+          {/* ── Matches tab ── */}
+          {activeTab === "matches" && (
+            loading ? (
+              <div style={{ color: theme.textMuted, fontSize: 13, textAlign: "center", padding: 20 }}>Loading...</div>
+            ) : pastMatches.length === 0 ? (
+              <div className="empty-state">
+                <div className="empty-icon">🏟️</div>
+                <div className="empty-text">No matches joined yet</div>
+                <div style={{ fontSize: 12, color: theme.textDim, marginTop: 6 }}>Join or create a match to get started!</div>
               </div>
-              <div className="stats-grid">
-                {stats.map((s, i) => (
-                  <div key={i} className="stat-box">
-                    <div className="stat-box-val">{s.val}</div>
-                    <div className="stat-box-label">{s.label}</div>
+            ) : (
+              pastMatches.map((m) => (
+                <div
+                  key={m.id}
+                  style={{
+                    background: theme.bgCard, border: `1px solid ${theme.border}`,
+                    borderRadius: 12, padding: "12px 14px", marginBottom: 10,
+                    display: "flex", justifyContent: "space-between", alignItems: "center",
+                  }}
+                >
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 700 }}>
+                      {sportEmoji[m.sport] || "🏅"} {m.title}
+                    </div>
+                    <div style={{ fontSize: 11, color: theme.textMuted, marginTop: 2 }}>
+                      📍 {m.location} ·{" "}
+                      {new Date(m.match_time).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
+                    </div>
+                  </div>
+                  <div style={{ textAlign: "right" }}>
+                    <div style={{
+                      fontSize: 10, fontWeight: 700, textTransform: "uppercase",
+                      color: m.status === "completed" ? theme.accent
+                           : m.status === "cancelled" ? theme.danger
+                           : m.status === "live" ? theme.accent
+                           : theme.textMuted,
+                    }}>
+                      {m.status}
+                    </div>
+                  </div>
+                </div>
+              ))
+            )
+          )}
+
+          {/* ── Stats tab ── */}
+          {activeTab === "stats" && (
+            loading ? (
+              <div style={{ color: theme.textMuted, fontSize: 13, textAlign: "center", padding: 20 }}>Loading...</div>
+            ) : (
+              <div style={{ background: theme.bgCard, border: `1px solid ${theme.border}`, borderRadius: 16, padding: "16px 18px" }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: theme.accent, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 16 }}>
+                  Your Stats
+                </div>
+
+                {[
+                  { label: "Matches Played", val: matchesPlayed },
+                  { label: "Reliability Score", val: `${reliabilityScore}%` },
+                  { label: "Sports Played", val: uniqueSports.length > 0 ? uniqueSports.join(", ") : "—" },
+                  { label: "Member Since", val: profile?.created_at ? new Date(profile.created_at).toLocaleDateString("en-GB", { month: "long", year: "numeric" }) : "—" },
+                ].map((row, i) => (
+                  <div key={i} style={{
+                    display: "flex", justifyContent: "space-between", alignItems: "center",
+                    padding: "10px 0",
+                    borderBottom: i < 3 ? `1px solid ${theme.border}` : "none",
+                  }}>
+                    <div style={{ fontSize: 13, color: theme.textMuted }}>{row.label}</div>
+                    <div style={{ fontSize: 13, fontWeight: 700 }}>{row.val}</div>
                   </div>
                 ))}
-              </div>
-              <div
-                style={{ marginTop: 12, padding: "10px 0", borderTop: `1px solid ${theme.border}`, display: "flex", justifyContent: "space-between", fontSize: 12, color: theme.textMuted, cursor: "pointer" }}
-                onClick={() => showToast?.("📊 Full match records coming soon!", "info")}
-              >
-                <span>Competitive matches</span>
-                <span style={{ color: theme.accent, fontWeight: 700 }}>View all records →</span>
-              </div>
-            </div>
-          ) : (
-            pastMatches.map((m, i) => (
-              <div
-                key={i}
-                style={{ background: theme.bgCard, border: `1px solid ${theme.border}`, borderRadius: 12, padding: "12px 14px", marginBottom: 10, display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer" }}
-                onClick={() => showToast?.(`📋 Full match stats for "${m.title}" coming soon!`, "info")}
-              >
-                <div>
-                  <div style={{ fontSize: 13, fontWeight: 700 }}>{m.title}</div>
-                  <div style={{ fontSize: 11, color: theme.textMuted, marginTop: 2 }}>{m.date} · {m.type}</div>
-                </div>
-                <div style={{ textAlign: "right" }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: m.result === "Won" ? theme.accent : theme.danger }}>{m.score}</div>
-                  <div style={{ fontSize: 10, color: m.result === "Won" ? theme.accent : theme.danger, fontWeight: 700 }}>{m.result}</div>
+
+                <div style={{ marginTop: 14, fontSize: 11, color: theme.textDim, lineHeight: 1.6 }}>
+                  Reliability score improves each time you show up to a match you joined.
                 </div>
               </div>
-            ))
+            )
           )}
+
         </div>
       </div>
     </div>
