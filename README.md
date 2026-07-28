@@ -1,16 +1,59 @@
-# React + Vite
+# PlayPulse
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Find a game. Join in. Play now.
 
-Currently, two official plugins are available:
+A mobile-first web app for amateur and campus sport: discover games on a live map,
+join them, and run everything about the match — chat, score, stream, kit funding and
+match-day check-in — from inside the match itself.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Running it
 
-## React Compiler
+```bash
+npm install
+npm run dev
+```
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Create a `.env` from `.env.example` with your Supabase project URL and publishable key.
+Without them the app still runs, falling back to a demo board held in memory.
 
-## Expanding the ESLint configuration
+```bash
+npm run build   # production bundle
+npm run lint    # eslint
+```
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## How it's put together
+
+Five slots in the bottom bar — Map, Matches, a **+** button, Portfolio, Me — and
+everything else is reached in context rather than as another tab.
+
+| Path | What lives there |
+| --- | --- |
+| `src/App.jsx` | Shell: tab switching, overlays, deep links |
+| `src/context/AppDataContext.jsx` | All shared state and every mutating action |
+| `src/context/AuthContext.jsx` | Supabase session handling |
+| `src/hooks/useMatchDetail.js` | Per-match chat, commentary, fundraisers, weather |
+| `src/screens/` | One file per screen |
+| `src/lib/format.js` | Time, distance and status formatting |
+| `src/styles/theme.js` | Design tokens and the whole stylesheet |
+| `supabase/schema.sql` | Complete backend: tables, RLS, functions |
+
+Two rules keep the UI honest:
+
+**Every control does something.** Writes funnel through `requireAuth`, so a guest
+tapping *Join* gets a sign-in screen explaining why, never a dead click. Actions apply
+optimistically and roll back with a readable message if the server disagrees.
+
+**Multi-table work happens in Postgres.** Joining, leaving, checking in and donating
+each touch two tables, so they run as `security definer` functions (`join_match`,
+`leave_match`, `set_checkin_step`, `approve_player`, `donate_to_fundraiser`). A dropped
+round-trip can't leave a roster row without its counter.
+
+## Auth
+
+Signing in is optional — the whole board is browsable as a guest, and the app only
+asks for an account when you try to write something.
+
+New Supabase projects require email confirmation by default. To let players in the
+moment they sign up, turn off **Confirm email** under Authentication → Sign In / Up →
+Email in the Supabase dashboard. Leave it on and the app handles it: signup explains
+that a confirmation link is on its way and offers to resend it.

@@ -1,66 +1,60 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase, isSupabaseConfigured } from "../lib/supabase";
-
-const AuthContext = createContext({});
+import { AuthContext } from "./contexts";
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  // Nothing to restore when there's no backend, so we start ready.
+  const [loading, setLoading] = useState(isSupabaseConfigured);
 
   useEffect(() => {
-    if (!isSupabaseConfigured) {
-      // Supabase not configured yet — skip auth, show app anyway
-      setLoading(false);
-      return;
-    }
+    if (!isSupabaseConfigured) return;
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      setLoading(false);
-    }).catch(() => {
-      setLoading(false);
-    });
+    supabase.auth.getSession()
+      .then(({ data }) => setUser(data?.session?.user ?? null))
+      .catch(() => {})
+      .finally(() => setLoading(false));
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
     });
-
     return () => subscription.unsubscribe();
   }, []);
 
   const signUp = async (email, password, username) => {
-    if (!isSupabaseConfigured) return { error: { message: "Supabase not configured yet." } };
+    if (!isSupabaseConfigured) return { error: { message: "Database isn't configured yet." } };
+
+    // The profile row is created by an `on auth.users insert` trigger, so it
+    // exists even when the session doesn't (email-confirmation flows).
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: { data: { username, full_name: username } },
     });
-    if (!error && data.user) {
-      await supabase.from("profiles").insert({
-        id: data.user.id,
-        username,
-        email,
-        full_name: username,
-      }).catch(() => {});
-    }
-    return { data, error };
+
+    return { data, error, needsConfirmation: !error && !data?.session };
   };
 
-  const signIn = async (email, password) => {
-    if (!isSupabaseConfigured) return { error: { message: "Supabase not configured yet." } };
-    return await supabase.auth.signInWithPassword({ email, password });
-  };
+  const signIn = async (email, password) =>
+    isSupabaseConfigured
+      ? supabase.auth.signInWithPassword({ email, password })
+      : { error: { message: "Database isn't configured yet." } };
 
   const signOut = async () => {
-    if (!isSupabaseConfigured) return;
-    await supabase.auth.signOut();
+    if (isSupabaseConfigured) await supabase.auth.signOut();
+    setUser(null);
   };
 
+  const resendConfirmation = async (email) =>
+    isSupabaseConfigured
+      ? supabase.auth.resend({ type: "signup", email })
+      : { error: { message: "Database isn't configured yet." } };
+
   return (
-    <AuthContext.Provider value={{ user, loading, signUp, signIn, signOut, isSupabaseConfigured }}>
+    <AuthContext.Provider
+      value={{ user, loading, signUp, signIn, signOut, resendConfirmation, isSupabaseConfigured }}
+    >
       {children}
     </AuthContext.Provider>
   );
 };
-
-export const useAuth = () => useContext(AuthContext);
