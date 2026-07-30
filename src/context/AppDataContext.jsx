@@ -27,6 +27,7 @@ const normalizeMatch = (row) => ({
   recurrence: row.recurrence || "Once",
   leagueId: row.league_id || null,
   createdBy: row.created_by || null,
+  organiser: row.profiles?.username || null,
 });
 
 const normalizeLeague = (row, teams, fixtures) => ({
@@ -116,7 +117,7 @@ export const AppDataProvider = ({ children }) => {
     if (!isSupabaseConfigured) { setOffline(true); setLoading(false); return; }
     try {
       const [matchRes, leagueRes, teamRes, fixtureRes, rosterRes] = await Promise.all([
-        supabase.from("matches").select("*").order("match_time", { ascending: true }),
+        supabase.from("matches").select("*, profiles(username)").order("match_time", { ascending: true }),
         supabase.from("leagues").select("*").order("created_at", { ascending: true }),
         supabase.from("league_teams").select("*"),
         supabase.from("league_fixtures").select("*"),
@@ -155,11 +156,31 @@ export const AppDataProvider = ({ children }) => {
 
   useEffect(() => { loadAll(); }, [loadAll]);
 
+  // Coming back to a backgrounded tab (or a phone waking up) should show the
+  // current board, not whatever was on screen when it was put down. Realtime
+  // only covers changes that arrive while the socket is alive.
+  useEffect(() => {
+    const onWake = () => { if (document.visibilityState === "visible") loadAll(); };
+    document.addEventListener("visibilitychange", onWake);
+    window.addEventListener("online", onWake);
+    return () => {
+      document.removeEventListener("visibilitychange", onWake);
+      window.removeEventListener("online", onWake);
+    };
+  }, [loadAll]);
+
   // ── My profile ────────────────────────────────────────────────────────────
   const loadProfile = useCallback(async () => {
     if (!user || !isSupabaseConfigured) { setProfile(null); return; }
     const { data } = await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle();
-    if (data) setProfile(data);
+
+    if (data) { setProfile(data); return; }
+
+    // A valid token with no profile row means the account was removed server
+    // side. Left alone the app shows a half-signed-in shell that can't write,
+    // so end the stale session and fall back to guest browsing.
+    setProfile(null);
+    await supabase.auth.signOut().catch(() => {});
   }, [user]);
 
   useEffect(() => { loadProfile(); }, [loadProfile]);
@@ -183,9 +204,11 @@ export const AppDataProvider = ({ children }) => {
       .on("postgres_changes", { event: "*", schema: "public", table: "matches" }, (payload) => {
         setMatches((prev) => {
           if (payload.eventType === "DELETE") return prev.filter((m) => m.id !== payload.old.id);
+          // Realtime payloads carry columns only, so keep the joined organiser
+          // name we already resolved rather than blanking it on every update.
           const next = normalizeMatch(payload.new);
           return prev.some((m) => m.id === next.id)
-            ? prev.map((m) => (m.id === next.id ? { ...m, ...next } : m))
+            ? prev.map((m) => (m.id === next.id ? { ...m, ...next, organiser: next.organiser ?? m.organiser } : m))
             : [...prev, next];
         });
       })
@@ -294,14 +317,14 @@ export const AppDataProvider = ({ children }) => {
       return { ok: true, match: local };
     }
 
-    const { data, error } = await supabase.from("matches").insert(payload).select().single();
+    const { data, error } = await supabase.from("matches").insert(payload).select("*, profiles(username)").single();
     if (error) { notify(readableError(error, "Couldn't post the match"), "error"); return { ok: false }; }
 
-    const created = normalizeMatch(data);
+    const created = { ...normalizeMatch(data), organiser: data.profiles?.username || profile?.username || null };
     setMatches((prev) => (prev.some((m) => m.id === created.id) ? prev : [...prev, created]));
     notify("⚡ Match posted — nearby players notified");
     return { ok: true, match: created };
-  }, [user, offline, requireAuth, notify]);
+  }, [user, profile, offline, requireAuth, notify]);
 
   const updateMatch = useCallback(async (matchId, patch, successMessage) => {
     if (!requireAuth("manage this match")) return false;

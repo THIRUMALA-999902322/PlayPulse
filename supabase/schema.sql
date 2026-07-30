@@ -48,7 +48,7 @@ create table if not exists public.leagues (
   sport      text not null,
   season     text,
   members    int  not null default 0,
-  created_by uuid references auth.users(id) on delete set null,
+  created_by uuid references public.profiles(id) on delete set null,
   created_at timestamptz not null default now()
 );
 
@@ -93,7 +93,7 @@ create table if not exists public.matches (
   recurrence     text not null default 'Once',
   stream_url     text,
   league_id      uuid references public.leagues(id) on delete set null,
-  created_by     uuid references auth.users(id) on delete set null,
+  created_by     uuid references public.profiles(id) on delete set null,
   created_at     timestamptz not null default now(),
   -- Seeded demo rows carry how far ahead of "now" they should sit, so a nightly
   -- job can re-anchor them. Player-created matches leave both at the default.
@@ -161,7 +161,7 @@ create table if not exists public.fundraisers (
   raised     numeric(10,2) not null default 0,
   donors     int not null default 0,
   ends_at    timestamptz,
-  created_by uuid references auth.users(id) on delete set null,
+  created_by uuid references public.profiles(id) on delete set null,
   created_at timestamptz not null default now()
 );
 

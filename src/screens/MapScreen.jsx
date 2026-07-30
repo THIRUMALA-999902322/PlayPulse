@@ -9,6 +9,7 @@ import { useAppData } from "../hooks/useAppData";
 import { useAuth } from "../hooks/useAuth";
 import { sportColor, sportEmoji } from "../lib/constants";
 import { displayStatus, distanceLabel, greeting, startsIn } from "../lib/format";
+import { tappable } from "../lib/a11y";
 import { theme } from "../styles/theme";
 
 delete L.Icon.Default.prototype._getIconUrl;
@@ -158,7 +159,7 @@ const MapScreen = ({ onOpenMatch }) => {
         <div style={{ padding: "10px 0 14px" }}>
           <div className="live-rail">
             {liveMatches.map((m) => (
-              <div key={m.id} className="live-card" onClick={() => onOpenMatch(m, m.streamUrl ? "stream" : "overview")}>
+              <div key={m.id} className="live-card" {...tappable(() => onOpenMatch(m, m.streamUrl ? "stream" : "overview"), `Live: ${m.title}`)}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
                   <StatusBadge status="live" />
                   <span style={{ fontSize: 10, color: theme.textMuted }}>{m.joined}/{m.max} playing</span>
@@ -271,7 +272,7 @@ const MapScreen = ({ onOpenMatch }) => {
         {needsPlayers.map((m) => {
           const soon = startsIn(m.matchTime);
           return (
-            <div key={m.id} className="quick-fill" onClick={() => onOpenMatch(m)}>
+            <div key={m.id} className="quick-fill" {...tappable(() => onOpenMatch(m), `${m.title} — needs ${m.max - m.joined} more`)}>
               <div className="quick-fill-icon">{m.emoji}</div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div className="quick-fill-title">{m.title}</div>

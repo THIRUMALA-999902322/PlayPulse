@@ -6,6 +6,7 @@ import { useAppData } from "../hooks/useAppData";
 import { useAuth } from "../hooks/useAuth";
 import { useMatchDetail } from "../hooks/useMatchDetail";
 import { CHECK_STEPS } from "../lib/constants";
+import { downloadMatchICS } from "../lib/calendar";
 import { clockTime, displayStatus, distanceLabel, formatMatchTime, startsIn, youtubeEmbed } from "../lib/format";
 import { theme } from "../styles/theme";
 
@@ -154,6 +155,11 @@ const MatchDetailScreen = ({ match, initialTab = "overview", onBack }) => {
           )}
           <span style={{ fontSize: 11, color: theme.textMuted }}>📍 {live.location}</span>
           <span style={{ fontSize: 11, color: theme.textMuted }}>🕐 {formatMatchTime(live.matchTime)}</span>
+          {(isOrganiser || live.organiser) && (
+            <span style={{ fontSize: 11, color: theme.textMuted }}>
+              🧑‍💼 {isOrganiser ? "You're organising" : `Organised by ${live.organiser}`}
+            </span>
+          )}
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 6, paddingBottom: 16 }}>
           {!closed && <div style={{ width: 7, height: 7, borderRadius: "50%", background: theme.accent, animation: "pulse 2s infinite" }} />}
@@ -218,7 +224,7 @@ const MatchDetailScreen = ({ match, initialTab = "overview", onBack }) => {
                   {isFull ? "Match full" : "✓ Join Match"}
                 </button>
               )}
-              <button className="ghost-btn" onClick={handleShare}>
+              <button className="ghost-btn" onClick={handleShare} aria-label="Share this match">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
                   <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
@@ -226,6 +232,18 @@ const MatchDetailScreen = ({ match, initialTab = "overview", onBack }) => {
                 Share
               </button>
             </div>
+
+            {!closed && (
+              <button
+                className="ghost-btn"
+                style={{ width: "100%", marginBottom: 20 }}
+                onClick={() => {
+                  notify(downloadMatchICS(live) ? "📅 Added to your calendar" : "This match has no set time yet", "info");
+                }}
+              >
+                📅 Add to calendar
+              </button>
+            )}
 
             {isOrganiser && (
               <div style={{ marginBottom: 20, padding: 14, background: theme.bgElevated, borderRadius: 14, border: `1px solid ${theme.border}` }}>

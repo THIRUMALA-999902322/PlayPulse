@@ -3,6 +3,7 @@ import { useAppData } from "../hooks/useAppData";
 import { useAuth } from "../hooks/useAuth";
 import { buildNotifications } from "../lib/notifications";
 import { relativeTime } from "../lib/format";
+import { tappable } from "../lib/a11y";
 import { theme } from "../styles/theme";
 
 const NotificationsSheet = ({ onClose, onOpenMatch }) => {
@@ -16,7 +17,9 @@ const NotificationsSheet = ({ onClose, onOpenMatch }) => {
         <div
           key={n.id}
           className="notif-row"
-          onClick={() => { if (n.matchId) { onOpenMatch(n.matchId); onClose(); } }}
+          {...(n.matchId
+            ? tappable(() => { onOpenMatch(n.matchId); onClose(); }, `${n.title}: ${n.body}`)
+            : {})}
           style={{ cursor: n.matchId ? "pointer" : "default" }}
         >
           <div

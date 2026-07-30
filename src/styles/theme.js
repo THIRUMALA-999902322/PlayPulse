@@ -38,7 +38,12 @@ export const globalStyles = `
     background: ${theme.bg}; position: relative;
   }
 
-  .screen { min-height: 100vh; padding-bottom: 96px; animation: fadeIn .25s ease; }
+  /* Leave room for the fixed nav plus the home-indicator strip on notched phones. */
+  .screen {
+    min-height: 100vh;
+    padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+    animation: fadeIn .25s ease;
+  }
 
   @keyframes fadeIn  { from { opacity: 0; transform: translateY(8px);}  to { opacity: 1; transform: translateY(0);} }
   @keyframes pulse   { 0%,100% { opacity: 1; transform: scale(1);}      50% { opacity: .7; transform: scale(.97);} }
@@ -418,7 +423,8 @@ export const globalStyles = `
   .bottom-nav {
     position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
     width: 100%; max-width: 420px; background: ${theme.bgCard};
-    border-top: 1px solid ${theme.border}; display: flex; padding: 10px 0 18px;
+    border-top: 1px solid ${theme.border}; display: flex;
+    padding: 10px 0 calc(18px + env(safe-area-inset-bottom, 0px));
     z-index: 100; backdrop-filter: blur(20px);
   }
   .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; background: none; border: none; color: ${theme.textMuted}; transition: all .2s; }
@@ -437,8 +443,15 @@ export const globalStyles = `
   .notif-row { display: flex; gap: 12px; align-items: flex-start; padding: 12px 0; border-bottom: 1px solid ${theme.border}; }
   .notif-row:last-child { border-bottom: none; }
 
+  /* Anything tappable gets a visible keyboard focus ring. */
+  :focus-visible {
+    outline: 2px solid ${theme.accent};
+    outline-offset: 2px;
+    border-radius: 8px;
+  }
+
   .toast {
-    position: fixed; bottom: 104px; left: 50%; transform: translateX(-50%);
+    position: fixed; bottom: calc(104px + env(safe-area-inset-bottom, 0px)); left: 50%; transform: translateX(-50%);
     background: ${theme.bgElevated}; border: 1px solid ${theme.accent}50;
     border-radius: 12px; padding: 11px 18px; font-size: 13px; font-weight: 600;
     color: ${theme.text}; z-index: 300; max-width: 92%; text-align: center;

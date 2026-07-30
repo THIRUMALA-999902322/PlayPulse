@@ -3,6 +3,7 @@ import Sheet from "../components/Sheet";
 import { useAppData } from "../hooks/useAppData";
 import { useAuth } from "../hooks/useAuth";
 import { initials } from "../lib/format";
+import { tappable } from "../lib/a11y";
 import { theme } from "../styles/theme";
 
 const PRIVACY_ROWS = [
@@ -92,7 +93,12 @@ const ProfileScreen = ({ onSignIn }) => {
         <div className="sport-portfolio">
           <div className="section-title" style={{ fontSize: 14, marginBottom: 4 }}>🔒 Privacy</div>
           {PRIVACY_ROWS.map((row) => (
-            <div key={row.key} className="settings-row" onClick={() => togglePrivacy(row.key)}>
+            <div
+              key={row.key}
+              className="settings-row"
+              {...tappable(() => togglePrivacy(row.key), `${row.label}: ${profile?.[row.key] ? "on" : "off"}`)}
+              aria-pressed={!!profile?.[row.key]}
+            >
               <div style={{ minWidth: 0 }}>
                 <div className="settings-label">{row.label}</div>
                 <div className="settings-sub">{row.sub}</div>
@@ -106,26 +112,26 @@ const ProfileScreen = ({ onSignIn }) => {
           <div className="section-title" style={{ fontSize: 14, marginBottom: 4 }}>⚙️ Account</div>
 
           {user && (
-            <div className="settings-row" onClick={openEdit}>
+            <div className="settings-row" {...tappable(openEdit, "Edit profile")}>
               <div><div className="settings-label">Edit profile</div><div className="settings-sub">Name and bio</div></div>
               <div style={{ color: theme.textMuted }}>›</div>
             </div>
           )}
 
-          <div className="settings-row" onClick={() => setShowAbout(true)}>
+          <div className="settings-row" {...tappable(() => setShowAbout(true), "About PlayPulse")}>
             <div><div className="settings-label">About PlayPulse</div><div className="settings-sub">What this app does</div></div>
             <div style={{ color: theme.textMuted }}>›</div>
           </div>
 
           <div
             className="settings-row"
-            onClick={() => window.open("mailto:hello@playpulse.app?subject=PlayPulse%20feedback", "_blank", "noopener")}
+            {...tappable(() => window.open("mailto:hello@playpulse.app?subject=PlayPulse%20feedback", "_blank", "noopener"), "Help and feedback")}
           >
             <div><div className="settings-label">Help &amp; feedback</div><div className="settings-sub">Tell us what's broken or missing</div></div>
             <div style={{ color: theme.textMuted }}>›</div>
           </div>
 
-          <div className="settings-row" onClick={user ? handleSignOut : onSignIn}>
+          <div className="settings-row" {...tappable(user ? handleSignOut : onSignIn, user ? "Sign out" : "Sign in")}>
             <div>
               <div className="settings-label" style={{ color: user ? theme.danger : theme.accent }}>
                 {user ? "Sign out" : "Sign in or create account"}

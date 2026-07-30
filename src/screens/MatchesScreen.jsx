@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import MatchCard from "../components/MatchCard";
 import { useAppData } from "../hooks/useAppData";
 import { useAuth } from "../hooks/useAuth";
+import { tappable } from "../lib/a11y";
 import { theme } from "../styles/theme";
 
 const SEGMENTS = ["All", "Pickup", "Leagues", "Practice", "Mine"];
@@ -97,7 +98,7 @@ const MatchesScreen = ({ onOpenMatch, onOpenLeague }) => {
                 <div className="section-title">🏆 Active Leagues</div>
               </div>
               {leagues.map((l) => (
-                <div key={l.id} className="league-card" onClick={() => onOpenLeague(l)}>
+                <div key={l.id} className="league-card" {...tappable(() => onOpenLeague(l), `${l.name} league`)}>
                   <div className="league-icon">{l.emoji}</div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div className="league-name">{l.name}</div>

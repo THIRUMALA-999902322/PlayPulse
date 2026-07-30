@@ -2,6 +2,7 @@ import StatusBadge from "./StatusBadge";
 import Avatar from "./Avatar";
 import { useAppData } from "../hooks/useAppData";
 import { displayStatus, distanceLabel, formatMatchTime, startsIn } from "../lib/format";
+import { tappable } from "../lib/a11y";
 import { theme } from "../styles/theme";
 
 const MatchCard = ({ match, onOpen }) => {
@@ -25,7 +26,10 @@ const MatchCard = ({ match, onOpen }) => {
   };
 
   return (
-    <div className="match-card" onClick={() => onOpen(match)}>
+    <div
+      className="match-card"
+      {...tappable(() => onOpen(match), `${match.title} — ${match.sport}, ${formatMatchTime(match.matchTime)}`)}
+    >
       <div className="match-card-header">
         <div className="match-sport-badge">{match.emoji} {match.sport}{kindSuffix}</div>
         <StatusBadge status={status} />

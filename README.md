@@ -34,6 +34,8 @@ everything else is reached in context rather than as another tab.
 | `src/hooks/useMatchDetail.js` | Per-match chat, commentary, fundraisers, weather |
 | `src/screens/` | One file per screen |
 | `src/lib/format.js` | Time, distance and status formatting |
+| `src/lib/calendar.js` | Builds the .ics a player downloads for a match |
+| `src/lib/a11y.js` | Makes tappable cards keyboard-reachable |
 | `src/styles/theme.js` | Design tokens and the whole stylesheet |
 | `supabase/schema.sql` | Complete backend: tables, RLS, functions |
 
@@ -47,6 +49,12 @@ optimistically and roll back with a readable message if the server disagrees.
 each touch two tables, so they run as `security definer` functions (`join_match`,
 `leave_match`, `set_checkin_step`, `approve_player`, `donate_to_fundraiser`). A dropped
 round-trip can't leave a roster row without its counter.
+
+One consequence worth knowing before adding a query: every `user_id` and `created_by`
+column points at `public.profiles`, not `auth.users`. PostgREST can only resolve a
+`profiles(...)` embed when the foreign key targets that table, and a missing
+relationship fails *silently* — the rows come back empty rather than erroring. That is
+why `loadAll` treats any failed query as fatal instead of shrugging one off.
 
 ## Auth
 
