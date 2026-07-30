@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { supabase, isSupabaseConfigured } from "../lib/supabase";
 import { useAuth } from "../hooks/useAuth";
 import { useAppData } from "../hooks/useAppData";
-import { demoCommentary } from "../data/demo";
+import { demoCommentary, demoScore } from "../data/demo";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -31,6 +31,7 @@ export const useMatchDetail = (match) => {
   const [messages, setMessages] = useState({ match: [], team: [] });
   const [commentary, setCommentary] = useState([]);
   const [fundraisers, setFundraisers] = useState([]);
+  const [teams, setTeams] = useState([]);
   const [weather, setWeather] = useState(null);
   const [sending, setSending] = useState(false);
 
@@ -43,16 +44,22 @@ export const useMatchDetail = (match) => {
       setMessages({ match: [], team: [] });
       setCommentary(match.status === "live" ? demoCommentary : []);
       setFundraisers([]);
+      setTeams(match.status === "live" ? demoScore.map((t, i) => ({ ...t, position: i + 1 })) : []);
       return;
     }
 
     (async () => {
-      const [msgRes, comRes, fundRes] = await Promise.all([
+      const [msgRes, comRes, fundRes, teamRes] = await Promise.all([
         supabase.from("messages").select("id, channel, body, created_at, user_id, profiles(username)").eq("match_id", matchId).order("created_at"),
         supabase.from("commentary").select("*").eq("match_id", matchId).order("created_at", { ascending: false }),
         supabase.from("fundraisers").select("*").eq("match_id", matchId).order("created_at"),
+        supabase.from("match_teams").select("*").eq("match_id", matchId).order("position"),
       ]);
       if (cancelled) return;
+
+      setTeams((teamRes.data || []).map((t) => ({
+        position: t.position, name: t.name, score: t.score, detail: t.detail,
+      })));
 
       const grouped = { match: [], team: [] };
       for (const m of msgRes.data || []) {
@@ -100,6 +107,24 @@ export const useMatchDetail = (match) => {
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [live, matchId, user?.id]);
+
+  // ── Scoreboard realtime ───────────────────────────────────────────────────
+  // Viewers watching a live match see the organiser's edits without refreshing.
+  useEffect(() => {
+    if (!live || !matchId) return;
+    const channel = supabase
+      .channel(`match-score-${matchId}`)
+      .on("postgres_changes",
+        { event: "*", schema: "public", table: "match_teams", filter: `match_id=eq.${matchId}` },
+        async () => {
+          const { data } = await supabase.from("match_teams").select("*").eq("match_id", matchId).order("position");
+          setTeams((data || []).map((t) => ({
+            position: t.position, name: t.name, score: t.score, detail: t.detail,
+          })));
+        })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [live, matchId]);
 
   // ── Weather ───────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -155,6 +180,36 @@ export const useMatchDetail = (match) => {
     }));
     return true;
   }, [live, matchId, user, profile, requireAuth, notify, readableError]);
+
+  /** Organiser-only. Writes both sides together so the board is never half-saved. */
+  const saveScoreboard = useCallback(async (rows) => {
+    if (!requireAuth("edit the scoreboard")) return false;
+
+    const cleaned = rows.map((t, i) => ({
+      position: i + 1,
+      name: t.name.trim() || `Team ${i + 1}`,
+      score: t.score.trim(),
+      detail: t.detail?.trim() || null,
+    }));
+
+    const before = teams;
+    setTeams(cleaned);
+
+    if (!live) { notify("Scoreboard saved"); return true; }
+
+    const { error } = await supabase
+      .from("match_teams")
+      .upsert(cleaned.map((t) => ({ ...t, match_id: matchId, updated_at: new Date().toISOString() })),
+              { onConflict: "match_id,position" });
+
+    if (error) {
+      setTeams(before);
+      notify(readableError(error, "Couldn't save the scoreboard"), "error");
+      return false;
+    }
+    notify("Scoreboard saved");
+    return true;
+  }, [live, matchId, teams, requireAuth, notify, readableError]);
 
   /** Organiser-only. The headline is derived so the badge and text always agree. */
   const postCommentary = useCallback(async ({ over, kind, body }) => {
@@ -214,5 +269,8 @@ export const useMatchDetail = (match) => {
     return true;
   }, [live, fundraisers, requireAuth, notify, readableError]);
 
-  return { messages, commentary, fundraisers, weather, sending, sendMessage, postCommentary, donate, isLiveData: live };
+  return {
+    messages, commentary, fundraisers, teams, weather, sending,
+    sendMessage, postCommentary, saveScoreboard, donate, isLiveData: live,
+  };
 };

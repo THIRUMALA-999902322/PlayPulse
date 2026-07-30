@@ -85,8 +85,8 @@ export const demoCommentary = [
 ];
 
 export const demoScore = [
-  { name: "Phoenix", score: "112/3", overs: "7.4" },
-  { name: "Bolts",   score: "89/5",  overs: "8.0" },
+  { name: "Phoenix", score: "112/3", detail: "7.4 overs" },
+  { name: "Bolts",   score: "89/5",  detail: "8.0 overs" },
 ];
 
 /** Portfolio shown before a player has any recorded matches of their own. */

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import StatusBadge from "../components/StatusBadge";
 import Avatar from "../components/Avatar";
 import Sheet from "../components/Sheet";
@@ -35,7 +35,14 @@ const MatchDetailScreen = ({ match, initialTab = "overview", onBack }) => {
   const [posting, setPosting] = useState(false);
   const chatEndRef = useRef(null);
 
-  const { messages, commentary, fundraisers, weather, sending, sendMessage, postCommentary, donate } = useMatchDetail(live);
+  const [editingScore, setEditingScore] = useState(false);
+  const [scoreDraft, setScoreDraft] = useState([]);
+  const [savingScore, setSavingScore] = useState(false);
+
+  const {
+    messages, commentary, fundraisers, teams, weather, sending,
+    sendMessage, postCommentary, saveScoreboard, donate,
+  } = useMatchDetail(live);
 
   // App remounts this screen per match (via key), so `initialTab` seeds state directly.
   useEffect(() => {
@@ -70,6 +77,26 @@ const MatchDetailScreen = ({ match, initialTab = "overview", onBack }) => {
     setDraft("");
     const ok = await sendMessage(chatChannel, text);
     if (!ok) setDraft(text);
+  };
+
+  const startEditingScore = () => {
+    setScoreDraft(
+      teams.length
+        ? teams.map((t) => ({ name: t.name, score: t.score, detail: t.detail || "" }))
+        : [{ name: "", score: "", detail: "" }, { name: "", score: "", detail: "" }]
+    );
+    setEditingScore(true);
+  };
+
+  const patchScoreDraft = (index, field, value) =>
+    setScoreDraft((prev) => prev.map((t, i) => (i === index ? { ...t, [field]: value } : t)));
+
+  const handleSaveScore = async () => {
+    if (scoreDraft.every((t) => !t.name.trim())) { notify("Name at least one side", "warning"); return; }
+    setSavingScore(true);
+    const ok = await saveScoreboard(scoreDraft);
+    setSavingScore(false);
+    if (ok) setEditingScore(false);
   };
 
   const handlePostUpdate = async () => {
@@ -308,7 +335,74 @@ const MatchDetailScreen = ({ match, initialTab = "overview", onBack }) => {
               </div>
             )}
 
-            {isOrganiser && !closed && (
+            {/* ── Scoreboard ── */}
+            {editingScore ? (
+              <div className="sport-portfolio" style={{ marginBottom: 14 }}>
+                <div className="section-title" style={{ fontSize: 14, marginBottom: 12 }}>Scoreboard</div>
+
+                {scoreDraft.map((t, i) => (
+                  <div key={i} style={{ marginBottom: 14 }}>
+                    <label className="form-label">{i === 0 ? "First side" : "Second side"}</label>
+                    <input
+                      className="form-input"
+                      placeholder="Team name"
+                      value={t.name}
+                      onChange={(e) => patchScoreDraft(i, "name", e.target.value)}
+                      aria-label={`Team ${i + 1} name`}
+                    />
+                    <div className="row-2" style={{ marginTop: 8 }}>
+                      <input
+                        className="form-input"
+                        placeholder={live.sport === "Cricket" ? "112/3" : "2"}
+                        value={t.score}
+                        onChange={(e) => patchScoreDraft(i, "score", e.target.value)}
+                        aria-label={`Team ${i + 1} score`}
+                      />
+                      <input
+                        className="form-input"
+                        placeholder={live.sport === "Cricket" ? "7.4 overs" : "half time"}
+                        value={t.detail}
+                        onChange={(e) => patchScoreDraft(i, "detail", e.target.value)}
+                        aria-label={`Team ${i + 1} detail`}
+                      />
+                    </div>
+                  </div>
+                ))}
+
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button className="submit-btn" style={{ flex: 1, padding: 12 }} onClick={handleSaveScore} disabled={savingScore}>
+                    {savingScore ? <><span className="spinner" /> Saving…</> : "Save scoreboard"}
+                  </button>
+                  <button className="ghost-btn" onClick={() => setEditingScore(false)}>Cancel</button>
+                </div>
+              </div>
+            ) : teams.length > 0 ? (
+              <>
+                <div className="score-board" style={{ marginTop: 0 }}>
+                  {teams.map((t, i) => (
+                    <Fragment key={t.position}>
+                      {i > 0 && <div className="score-vs"><div className="vs-text">VS</div></div>}
+                      <div className="team-score">
+                        <div className="team-name-sm">{t.name}</div>
+                        <div className="score-big">{t.score || "—"}</div>
+                        {t.detail && <div className="score-sub">{t.detail}</div>}
+                      </div>
+                    </Fragment>
+                  ))}
+                </div>
+                {isOrganiser && !closed && (
+                  <button className="ghost-btn" style={{ width: "100%", marginBottom: 14 }} onClick={startEditingScore}>
+                    ✎ Edit scoreboard
+                  </button>
+                )}
+              </>
+            ) : isOrganiser && !closed ? (
+              <button className="ghost-btn" style={{ width: "100%", marginBottom: 14 }} onClick={startEditingScore}>
+                + Set up scoreboard
+              </button>
+            ) : null}
+
+            {isOrganiser && !closed && !editingScore && (
               <div className="sport-portfolio" style={{ marginBottom: 14 }}>
                 <div className="section-title" style={{ fontSize: 14, marginBottom: 12 }}>Post an update</div>
 

@@ -115,6 +115,20 @@ create table if not exists public.match_players (
   unique (match_id, user_id)
 );
 
+-- Scores are text rather than numeric so one shape covers every sport:
+-- "112/3" for cricket, "2" for football. `detail` carries the qualifier
+-- ("7.4 overs", "half time") and stays null when a sport has none.
+create table if not exists public.match_teams (
+  id         uuid primary key default gen_random_uuid(),
+  match_id   uuid not null references public.matches(id) on delete cascade,
+  position   int  not null default 1,          -- 1 = first side, 2 = second side
+  name       text not null,
+  score      text not null default '',
+  detail     text,
+  updated_at timestamptz not null default now(),
+  unique (match_id, position)
+);
+
 -- ── Chat & commentary ────────────────────────────────────────────────────────
 create table if not exists public.messages (
   id         uuid primary key default gen_random_uuid(),
@@ -198,6 +212,7 @@ alter table public.league_teams    enable row level security;
 alter table public.league_fixtures enable row level security;
 alter table public.matches         enable row level security;
 alter table public.match_players   enable row level security;
+alter table public.match_teams     enable row level security;
 alter table public.messages        enable row level security;
 alter table public.commentary      enable row level security;
 alter table public.fundraisers     enable row level security;
@@ -212,6 +227,7 @@ create policy "read_all" on public.league_teams    for select using (true);
 create policy "read_all" on public.league_fixtures for select using (true);
 create policy "read_all" on public.matches         for select using (true);
 create policy "read_all" on public.match_players   for select using (true);
+create policy "read_all" on public.match_teams     for select using (true);
 create policy "read_all" on public.messages        for select using (true);
 create policy "read_all" on public.commentary      for select using (true);
 create policy "read_all" on public.fundraisers     for select using (true);
@@ -246,6 +262,11 @@ create policy "own_insert" on public.messages
   for insert to authenticated with check (auth.uid() = user_id);
 create policy "own_delete" on public.messages
   for delete to authenticated using (auth.uid() = user_id);
+
+create policy "organiser_write" on public.match_teams
+  for all to authenticated
+  using (exists (select 1 from public.matches m where m.id = match_id and m.created_by = auth.uid()))
+  with check (exists (select 1 from public.matches m where m.id = match_id and m.created_by = auth.uid()));
 
 create policy "organiser_insert" on public.commentary
   for insert to authenticated with check (
@@ -440,6 +461,7 @@ alter publication supabase_realtime add table public.matches;
 alter publication supabase_realtime add table public.messages;
 alter publication supabase_realtime add table public.match_players;
 alter publication supabase_realtime add table public.fundraisers;
+alter publication supabase_realtime add table public.match_teams;
 
 -- =============================================================================
 -- Demo board upkeep. Fixed seed timestamps go stale within hours and leave a
