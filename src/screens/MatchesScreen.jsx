@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import MatchCard from "../components/MatchCard";
 import { useAppData } from "../hooks/useAppData";
+import { useAuth } from "../hooks/useAuth";
 import { theme } from "../styles/theme";
 
 const SEGMENTS = ["All", "Pickup", "Leagues", "Practice", "Mine"];
@@ -8,6 +9,7 @@ const SEG_KIND = { Pickup: "pickup", Leagues: "league", Practice: "practice" };
 
 const MatchesScreen = ({ onOpenMatch, onOpenLeague }) => {
   const { matches, leagues, joinedIds, loadLeaderboard, leaderboard } = useAppData();
+  const { user } = useAuth();
 
   const [seg, setSeg] = useState("All");
   const [tab, setTab] = useState("matches"); // matches | leaderboard
@@ -34,12 +36,13 @@ const MatchesScreen = ({ onOpenMatch, onOpenLeague }) => {
     return matches.filter((m) => {
       const bySeg =
         seg === "All" ? true :
-        seg === "Mine" ? joinedIds.includes(m.id) :
+        // "Mine" covers both sides of involvement: joined and organised.
+        seg === "Mine" ? joinedIds.includes(m.id) || (!!user && m.createdBy === user.id) :
         m.kind === SEG_KIND[seg];
       const bySearch = !q || m.title.toLowerCase().includes(q) || m.location.toLowerCase().includes(q) || m.sport.toLowerCase().includes(q);
       return bySeg && bySearch;
     });
-  }, [matches, seg, search, joinedIds]);
+  }, [matches, seg, search, joinedIds, user]);
 
   const medal = (i) => (i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `${i + 1}`);
 
@@ -120,7 +123,7 @@ const MatchesScreen = ({ onOpenMatch, onOpenLeague }) => {
               <div className="empty-state">
                 <div className="empty-icon">🏟️</div>
                 <div className="empty-text">
-                  {seg === "Mine" ? "You haven't joined a match yet — tap Join on any card." : "Nothing here yet."}
+                  {seg === "Mine" ? "Nothing yet — join a match or post one with the + button." : "Nothing here yet."}
                 </div>
               </div>
             ) : (

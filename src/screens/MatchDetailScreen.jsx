@@ -29,9 +29,13 @@ const MatchDetailScreen = ({ match, initialTab = "overview", onBack }) => {
   const [newTime, setNewTime] = useState("");
   const [busy, setBusy] = useState(false);
   const [playingStream, setPlayingStream] = useState(false);
+  const [entryKind, setEntryKind] = useState("normal");
+  const [entryOver, setEntryOver] = useState("");
+  const [entryBody, setEntryBody] = useState("");
+  const [posting, setPosting] = useState(false);
   const chatEndRef = useRef(null);
 
-  const { messages, commentary, fundraisers, weather, sending, sendMessage, donate } = useMatchDetail(live);
+  const { messages, commentary, fundraisers, weather, sending, sendMessage, postCommentary, donate } = useMatchDetail(live);
 
   // App remounts this screen per match (via key), so `initialTab` seeds state directly.
   useEffect(() => {
@@ -66,6 +70,13 @@ const MatchDetailScreen = ({ match, initialTab = "overview", onBack }) => {
     setDraft("");
     const ok = await sendMessage(chatChannel, text);
     if (!ok) setDraft(text);
+  };
+
+  const handlePostUpdate = async () => {
+    setPosting(true);
+    const ok = await postCommentary({ over: entryOver, kind: entryKind, body: entryBody });
+    setPosting(false);
+    if (ok) { setEntryOver(""); setEntryBody(""); setEntryKind("normal"); }
   };
 
   const handleShare = async () => {
@@ -291,29 +302,77 @@ const MatchDetailScreen = ({ match, initialTab = "overview", onBack }) => {
         {/* ── SCORE ── */}
         {tab === "score" && (
           <>
-            {status === "live" ? (
+            {status === "live" && (
               <div className="role-note" style={{ borderStyle: "solid", borderColor: `${theme.danger}40`, color: theme.text }}>
-                🔴 This match is in progress. Scores and commentary are posted by the organiser.
-              </div>
-            ) : (
-              <div className="empty-state" style={{ paddingTop: 10 }}>
-                <div className="empty-icon">📊</div>
-                <div className="empty-text">The scorecard opens when the match starts.</div>
+                🔴 This match is in progress.
               </div>
             )}
 
-            {commentary.length > 0 && commentary.map((c) => (
+            {isOrganiser && !closed && (
+              <div className="sport-portfolio" style={{ marginBottom: 14 }}>
+                <div className="section-title" style={{ fontSize: 14, marginBottom: 12 }}>Post an update</div>
+
+                <div className="toggle-group" style={{ marginBottom: 12 }}>
+                  {[["normal", "Ball"], ["four", "Four"], ["six", "Six"], ["wicket", "Wicket"]].map(([key, label]) => (
+                    <button key={key} className={`toggle-btn ${entryKind === key ? "on" : ""}`} onClick={() => setEntryKind(key)}>
+                      {label}
+                    </button>
+                  ))}
+                </div>
+
+                <div style={{ display: "flex", gap: 8 }}>
+                  <input
+                    className="form-input"
+                    style={{ width: 84, flexShrink: 0, textAlign: "center" }}
+                    placeholder="8.4"
+                    value={entryOver}
+                    onChange={(e) => setEntryOver(e.target.value)}
+                    aria-label="Over or minute"
+                  />
+                  <input
+                    className="form-input"
+                    placeholder="What just happened?"
+                    value={entryBody}
+                    onChange={(e) => setEntryBody(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter") handlePostUpdate(); }}
+                    aria-label="Update text"
+                  />
+                </div>
+
+                <button
+                  className="submit-btn"
+                  style={{ marginTop: 12, padding: 12 }}
+                  onClick={handlePostUpdate}
+                  disabled={posting || !entryOver.trim() || !entryBody.trim()}
+                >
+                  {posting ? <><span className="spinner" /> Posting…</> : "Post update"}
+                </button>
+              </div>
+            )}
+
+            {commentary.length > 0 ? commentary.map((c) => (
               <div key={c.id} className="commentary-item">
                 <div className={`over-badge ${c.kind}`}>{c.over}</div>
                 <div className="commentary-text">
                   {c.headline && <strong>{c.headline}</strong>}{c.body}
                 </div>
               </div>
-            ))}
+            )) : (
+              <div className="empty-state" style={{ paddingTop: 10 }}>
+                <div className="empty-icon">📊</div>
+                <div className="empty-text">
+                  {isOrganiser && !closed
+                    ? "No updates yet — post the first one above."
+                    : "Ball-by-ball updates appear here once the organiser starts posting."}
+                </div>
+              </div>
+            )}
 
-            <div className="role-note" style={{ marginTop: 14 }}>
-              🔒 Only the organiser, scorekeeper and team captains can edit scores or post commentary. Everyone can view.
-            </div>
+            {!isOrganiser && (
+              <div className="role-note" style={{ marginTop: 14 }}>
+                🔒 Only the organiser can post scores and commentary. Everyone can view.
+              </div>
+            )}
           </>
         )}
 

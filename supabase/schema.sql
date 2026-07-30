@@ -94,7 +94,11 @@ create table if not exists public.matches (
   stream_url     text,
   league_id      uuid references public.leagues(id) on delete set null,
   created_by     uuid references auth.users(id) on delete set null,
-  created_at     timestamptz not null default now()
+  created_at     timestamptz not null default now(),
+  -- Seeded demo rows carry how far ahead of "now" they should sit, so a nightly
+  -- job can re-anchor them. Player-created matches leave both at the default.
+  is_demo        boolean not null default false,
+  demo_offset    interval
 );
 
 create index if not exists matches_time_idx on public.matches (match_time);
@@ -436,3 +440,46 @@ alter publication supabase_realtime add table public.matches;
 alter publication supabase_realtime add table public.messages;
 alter publication supabase_realtime add table public.match_players;
 alter publication supabase_realtime add table public.fundraisers;
+
+-- =============================================================================
+-- Demo board upkeep. Fixed seed timestamps go stale within hours and leave a
+-- first-time visitor looking at a board of finished games, so the demo rows are
+-- re-anchored nightly. Only rows with is_demo = true are touched.
+-- =============================================================================
+create or replace function public.refresh_demo_board()
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  update public.matches
+     set match_time = now() + coalesce(demo_offset, interval '2 hours')
+   where is_demo;
+
+  update public.league_fixtures
+     set fixture_time = now() + interval '2 days'
+   where fixture_time is null or fixture_time < now();
+
+  update public.commentary
+     set created_at = now() - (interval '1 minute' * (row_number_seq - 1))
+    from (
+      select id, row_number() over (order by over_label desc) as row_number_seq
+        from public.commentary
+    ) ranked
+   where public.commentary.id = ranked.id;
+end;
+$$;
+
+revoke all on function public.refresh_demo_board() from public, anon, authenticated;
+
+create extension if not exists pg_cron;
+
+select cron.unschedule('refresh-playpulse-demo')
+ where exists (select 1 from cron.job where jobname = 'refresh-playpulse-demo');
+
+select cron.schedule(
+  'refresh-playpulse-demo',
+  '0 3 * * *',
+  $$select public.refresh_demo_board()$$
+);

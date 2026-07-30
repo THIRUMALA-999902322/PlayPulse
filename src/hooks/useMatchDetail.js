@@ -156,6 +156,41 @@ export const useMatchDetail = (match) => {
     return true;
   }, [live, matchId, user, profile, requireAuth, notify, readableError]);
 
+  /** Organiser-only. The headline is derived so the badge and text always agree. */
+  const postCommentary = useCallback(async ({ over, kind, body }) => {
+    if (!requireAuth("post a score update")) return false;
+    const overLabel = over.trim();
+    const text = body.trim();
+    if (!overLabel || !text) return false;
+
+    const headline = { six: "SIX!", four: "FOUR!", wicket: "WICKET!" }[kind] || null;
+    const entry = {
+      id: `tmp-${Date.now()}`,
+      over: overLabel,
+      kind,
+      headline,
+      body: headline ? ` ${text}` : text,
+    };
+    setCommentary((prev) => [entry, ...prev]);
+
+    if (!live) { notify("Update posted"); return true; }
+
+    const { data, error } = await supabase
+      .from("commentary")
+      .insert({ match_id: matchId, over_label: overLabel, kind, headline, body: entry.body })
+      .select("id")
+      .single();
+
+    if (error) {
+      setCommentary((prev) => prev.filter((c) => c.id !== entry.id));
+      notify(readableError(error, "Couldn't post that update"), "error");
+      return false;
+    }
+    setCommentary((prev) => prev.map((c) => (c.id === entry.id ? { ...c, id: data.id } : c)));
+    notify("Update posted");
+    return true;
+  }, [live, matchId, requireAuth, notify, readableError]);
+
   const donate = useCallback(async (fundraiserId, amount) => {
     if (!requireAuth("donate")) return false;
 
@@ -179,5 +214,5 @@ export const useMatchDetail = (match) => {
     return true;
   }, [live, fundraisers, requireAuth, notify, readableError]);
 
-  return { messages, commentary, fundraisers, weather, sending, sendMessage, donate, isLiveData: live };
+  return { messages, commentary, fundraisers, weather, sending, sendMessage, postCommentary, donate, isLiveData: live };
 };
