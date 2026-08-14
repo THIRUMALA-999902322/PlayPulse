@@ -21,7 +21,9 @@ export const CHECK_STEPS = ["Registered", "Confirmed", "On The Way", "Arrived", 
 export const SKILL_LEVELS = ["All levels", "Beginner", "Intermediate", "Advanced"];
 export const MATCH_TYPES  = ["Friendly", "League", "Practice", "Tournament"];
 export const GEAR_OPTIONS = ["Ball", "Cones", "Net", "Bibs"];
-export const PRIVACY_OPTIONS = ["Public", "Friends", "Invite Only"];
+// "Friends" is gone: there is no social graph, so it could only ever have been
+// a second word for "Public". Both of these are enforced by database policy.
+export const PRIVACY_OPTIONS = ["Public", "Invite Only"];
 export const RECURRENCE_OPTIONS = ["Once", "Weekly", "Biweekly", "Monthly"];
 
 export const AVATAR_COLORS = [

@@ -23,7 +23,6 @@ const MatchDetailScreen = ({ match, initialTab = "overview", onBack }) => {
   const [tab, setTab] = useState(initialTab);
   const [chatChannel, setChatChannel] = useState("match");
   const [draft, setDraft] = useState("");
-  const [amount, setAmount] = useState(5);
   const [showCancel, setShowCancel] = useState(false);
   const [showReschedule, setShowReschedule] = useState(false);
   const [newDate, setNewDate] = useState("");
@@ -41,8 +40,8 @@ const MatchDetailScreen = ({ match, initialTab = "overview", onBack }) => {
   const [savingScore, setSavingScore] = useState(false);
 
   const {
-    messages, commentary, fundraisers, teams, weather, sending,
-    sendMessage, postCommentary, saveScoreboard, donate,
+    messages, commentary, teams, weather, sending,
+    sendMessage, postCommentary, saveScoreboard,
   } = useMatchDetail(live);
 
   // App remounts this screen per match (via key), so `initialTab` seeds state directly.
@@ -69,7 +68,6 @@ const MatchDetailScreen = ({ match, initialTab = "overview", onBack }) => {
     ["chat", "💬 Chat"],
     ["score", "📊 Score"],
     ...(live.streamUrl ? [["stream", "▶ Stream"]] : []),
-    ...(fundraisers.length ? [["donate", "💛 Donate"]] : []),
     ["checkin", "✅ Check-in"],
   ];
 
@@ -520,40 +518,6 @@ const MatchDetailScreen = ({ match, initialTab = "overview", onBack }) => {
             </div>
 
             <div className="role-note">Streaming is organiser-controlled. Only approved broadcasters can go live for this match.</div>
-          </>
-        )}
-
-        {/* ── DONATE ── */}
-        {tab === "donate" && (
-          <>
-            {fundraisers.map((f) => {
-              const pct = Math.min(100, Math.round((f.raised / f.goal) * 100));
-              return (
-                <div key={f.id} className="fund-card">
-                  <div className="fund-header">
-                    <div style={{ minWidth: 0 }}>
-                      <div className="fund-title">{f.title}</div>
-                      <div className="fund-cause">{f.cause}</div>
-                    </div>
-                    <div className="fund-goal-tag">£{f.goal} goal</div>
-                  </div>
-                  <div className="progress-bar"><div className="progress-fill" style={{ width: `${pct}%` }} /></div>
-                  <div className="fund-stats">
-                    <span className="fund-raised">£{f.raised} raised ({pct}%)</span>
-                    <span>{f.donors} donors</span>
-                  </div>
-                  <div className="amount-row">
-                    {[2, 5, 10].map((a) => (
-                      <button key={a} className={`amount-btn ${amount === a ? "on" : ""}`} onClick={() => setAmount(a)}>£{a}</button>
-                    ))}
-                  </div>
-                  <button className="submit-btn" style={{ marginTop: 12, padding: 12 }} onClick={() => donate(f.id, amount)}>
-                    💛 Donate £{amount}
-                  </button>
-                </div>
-              );
-            })}
-            <div className="role-note">Every donor and amount is visible to match members — funds stay transparent.</div>
           </>
         )}
 

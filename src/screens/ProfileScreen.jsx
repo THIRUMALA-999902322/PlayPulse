@@ -6,10 +6,15 @@ import { initials } from "../lib/format";
 import { tappable } from "../lib/a11y";
 import { theme } from "../styles/theme";
 
+// Only settings the database actually enforces belong here. "Public posts" and
+// "Show on map" controlled nothing — there is no posts feature and no player
+// map — so they were removed rather than left as decoration.
 const PRIVACY_ROWS = [
-  { key: "public_portfolio", label: "Public portfolio", sub: "Anyone can view your stats and sports resume" },
-  { key: "public_posts",     label: "Public posts",     sub: "Photos and match summaries visible to everyone" },
-  { key: "show_location",    label: "Show on map",      sub: "Appear in nearby player searches" },
+  {
+    key: "public_portfolio",
+    label: "Discoverable profile",
+    sub: "Let other players find you and see your record on the leaderboard",
+  },
 ];
 
 const ProfileScreen = ({ onSignIn }) => {

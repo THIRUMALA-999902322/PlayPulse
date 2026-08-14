@@ -50,13 +50,6 @@ const KIND_FILTERS = ["All", "Matches", "Leagues", "Practice"];
 const KIND_MAP = { Matches: "pickup", Leagues: "league", Practice: "practice" };
 const SPORT_CHIPS = ["All", "Cricket", "Football", "Basketball", "Badminton", "Tennis"];
 
-/** Matches without their own coordinates get a stable offset near the viewer. */
-const spreadOffsets = [
-  [0.0018, 0.0032], [-0.0024, 0.0018], [0.0031, -0.0027],
-  [-0.0014, -0.0035], [0.0025, 0.0014], [-0.0036, 0.0024],
-  [0.0012, -0.0018], [-0.0029, -0.0012],
-];
-
 const MapScreen = ({ onOpenMatch }) => {
   const { matches, userPos, gpsStatus, joinedIds, offline } = useAppData();
   const { user } = useAuth();
@@ -95,16 +88,13 @@ const MapScreen = ({ onOpenMatch }) => {
   const fillCount = matches.filter(needsFilling).length;
   const unread = buildNotifications(matches, joinedIds, user?.id).length;
 
-  const pinned = useMemo(() => {
-    if (!userPos) return [];
-    return visible
-      .filter((m) => displayStatus(m) !== "ended")
-      .slice(0, 8)
-      .map((m, i) => {
-        const [dLat, dLng] = spreadOffsets[i % spreadOffsets.length];
-        return { ...m, pinLat: m.lat ?? userPos[0] + dLat, pinLng: m.lng ?? userPos[1] + dLng };
-      });
-  }, [visible, userPos]);
+  // Only matches with real coordinates go on the map. Scattering the rest around
+  // the viewer used to make a game in another city look like it was down the road.
+  const pinned = useMemo(
+    () => visible.filter((m) => displayStatus(m) !== "ended" && m.lat != null && m.lng != null),
+    [visible]
+  );
+  const unpinned = visible.length - pinned.length;
 
   const needsPlayers = visible.filter(needsFilling);
   const rest = visible.filter((m) => !needsPlayers.includes(m));
@@ -196,7 +186,7 @@ const MapScreen = ({ onOpenMatch }) => {
               {pinned.map((m) => (
                 <Marker
                   key={m.id}
-                  position={[m.pinLat, m.pinLng]}
+                  position={[m.lat, m.lng]}
                   icon={matchIcon(m.emoji, sportColor[m.sport] || sportColor.default, m.status === "live")}
                   eventHandlers={{ click: () => onOpenMatch(m) }}
                 >
@@ -236,9 +226,11 @@ const MapScreen = ({ onOpenMatch }) => {
         )}
 
         <div className="map-overlay-pill">
-          {gpsStatus === "ok" ? "📍 Tap a pin to open the match"
+          {gpsStatus === "loading" ? "📍 Getting location…"
             : gpsStatus === "denied" ? "📍 Location off · showing central London"
-            : "📍 Getting location…"}
+            : pinned.length === 0 ? "📍 No pinned matches yet"
+            : unpinned > 0 ? `📍 ${pinned.length} on the map · ${unpinned} without a pin`
+            : "📍 Tap a pin to open the match"}
         </div>
       </div>
 
@@ -288,8 +280,30 @@ const MapScreen = ({ onOpenMatch }) => {
 
         {visible.length === 0 && (
           <div className="empty-state">
-            <div className="empty-icon">🗺️</div>
-            <div className="empty-text">No games match these filters. Post one and get it filled.</div>
+            {matches.length === 0 ? (
+              // A brand-new board is not the same as a filtered-out one, and
+              // this is the first screen an early user ever sees.
+              <>
+                <div className="empty-icon">🌱</div>
+                <div className="empty-text" style={{ marginBottom: 8 }}>
+                  {offline ? "Can't reach the server" : "No games posted yet"}
+                </div>
+                <div style={{ fontSize: 12, color: theme.textDim, lineHeight: 1.7, maxWidth: 290, margin: "0 auto" }}>
+                  {offline
+                    ? "Check your connection and pull the app open again."
+                    : "Be the one who starts it. Tap the + button, pick a sport and a time, and your game goes out to everyone nearby."}
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="empty-icon">🗺️</div>
+                <div className="empty-text">Nothing matches these filters.</div>
+                <button className="see-all" style={{ marginTop: 10 }}
+                  onClick={() => { setSearch(""); setShowSearch(false); setKindFilter("All"); setSportFilter("All"); }}>
+                  Clear filters
+                </button>
+              </>
+            )}
           </div>
         )}
       </div>

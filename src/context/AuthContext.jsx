@@ -50,9 +50,24 @@ export const AuthProvider = ({ children }) => {
       ? supabase.auth.resend({ type: "signup", email })
       : { error: { message: "Database isn't configured yet." } };
 
+  /** Sends the reset link back to the app, where updatePassword finishes the job. */
+  const requestPasswordReset = async (email) =>
+    isSupabaseConfigured
+      ? supabase.auth.resetPasswordForEmail(email, { redirectTo: `${window.location.origin}/` })
+      : { error: { message: "Database isn't configured yet." } };
+
+  const updatePassword = async (password) =>
+    isSupabaseConfigured
+      ? supabase.auth.updateUser({ password })
+      : { error: { message: "Database isn't configured yet." } };
+
   return (
     <AuthContext.Provider
-      value={{ user, loading, signUp, signIn, signOut, resendConfirmation, isSupabaseConfigured }}
+      value={{
+        user, loading, signUp, signIn, signOut,
+        resendConfirmation, requestPasswordReset, updatePassword,
+        isSupabaseConfigured,
+      }}
     >
       {children}
     </AuthContext.Provider>

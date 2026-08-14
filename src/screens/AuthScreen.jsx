@@ -15,9 +15,9 @@ const explain = (message = "") => {
 };
 
 const AuthScreen = ({ reason, onClose }) => {
-  const { signIn, signUp, resendConfirmation } = useAuth();
+  const { signIn, signUp, resendConfirmation, requestPasswordReset } = useAuth();
 
-  const [mode, setMode] = useState("login");
+  const [mode, setMode] = useState("login");   // login | signup | reset
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [username, setUsername] = useState("");
@@ -34,6 +34,18 @@ const AuthScreen = ({ reason, onClose }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(""); setSuccess(""); setNeedsConfirm(false);
+
+    if (mode === "reset") {
+      if (!email.trim()) { setError("Enter the email you signed up with."); return; }
+      setLoading(true);
+      const { error: err } = await requestPasswordReset(email.trim());
+      setLoading(false);
+      // Never reveal whether an address has an account.
+      if (err && !/rate limit|over_email_send/i.test(err.message)) setError(explain(err.message));
+      else if (err) setError(explain(err.message));
+      else setSuccess("If that email has an account, a reset link is on its way. Open it on this device.");
+      return;
+    }
 
     if (mode === "signup" && !username.trim()) { setError("Pick a username."); return; }
     if (password.length < 6) { setError("Password needs to be at least 6 characters."); return; }
@@ -87,7 +99,11 @@ const AuthScreen = ({ reason, onClose }) => {
   return (
     <div className="auth-screen">
       <div className="auth-logo">PLAY<span style={{ color: theme.accent }}>PULSE</span></div>
-      <div className="auth-sub">{reason ? `Sign in to ${reason}` : "Find a game. Join in. Play now."}</div>
+      <div className="auth-sub">
+        {mode === "reset"
+          ? "We'll email you a link to set a new password"
+          : reason ? `Sign in to ${reason}` : "Find a game. Join in. Play now."}
+      </div>
 
       <div className="auth-card">
         <div className="auth-toggle">
@@ -129,17 +145,33 @@ const AuthScreen = ({ reason, onClose }) => {
               autoComplete="email" onChange={(e) => setEmail(e.target.value)} required />
           </div>
 
-          <div className="form-group">
-            <label className="form-label" htmlFor="ap">Password</label>
-            <input id="ap" className="form-input" type="password" placeholder="At least 6 characters" value={password}
-              autoComplete={mode === "login" ? "current-password" : "new-password"}
-              minLength={6} onChange={(e) => setPassword(e.target.value)} required />
-          </div>
+          {mode !== "reset" && (
+            <div className="form-group">
+              <label className="form-label" htmlFor="ap">Password</label>
+              <input id="ap" className="form-input" type="password" placeholder="At least 6 characters" value={password}
+                autoComplete={mode === "login" ? "current-password" : "new-password"}
+                minLength={6} onChange={(e) => setPassword(e.target.value)} required />
+            </div>
+          )}
 
           <button className="submit-btn" type="submit" disabled={loading} style={{ marginTop: 8 }}>
-            {loading ? <><span className="spinner" /> Please wait…</> : mode === "login" ? "Sign in →" : "Create account →"}
+            {loading
+              ? <><span className="spinner" /> Please wait…</>
+              : mode === "login" ? "Sign in →"
+              : mode === "signup" ? "Create account →"
+              : "Email me a reset link →"}
           </button>
         </form>
+
+        <div style={{ textAlign: "center", marginTop: 14 }}>
+          <button
+            type="button"
+            onClick={() => switchMode(mode === "reset" ? "login" : "reset")}
+            style={{ background: "none", border: "none", color: theme.textMuted, fontSize: 12, cursor: "pointer", textDecoration: "underline" }}
+          >
+            {mode === "reset" ? "Back to sign in" : "Forgotten your password?"}
+          </button>
+        </div>
       </div>
 
       <div style={{ textAlign: "center", marginTop: 16 }}>

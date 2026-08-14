@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase, isSupabaseConfigured } from "../lib/supabase";
 import { useAuth } from "../hooks/useAuth";
 import { sportEmoji } from "../lib/constants";
-import { demoLeagues, demoMatches } from "../data/demo";
 import { AppDataContext } from "./contexts";
 
 const normalizeMatch = (row) => ({
@@ -63,8 +62,8 @@ const readableError = (error, fallback) => {
 export const AppDataProvider = ({ children }) => {
   const { user } = useAuth();
 
-  const [matches, setMatches] = useState(demoMatches);
-  const [leagues, setLeagues] = useState(demoLeagues);
+  const [matches, setMatches] = useState([]);
+  const [leagues, setLeagues] = useState([]);
   const [roster, setRoster] = useState({});          // matchId -> [{ userId, username, status, checkinStep }]
   const [leaderboard, setLeaderboard] = useState([]);
   const [profile, setProfile] = useState(null);
@@ -147,7 +146,8 @@ export const AppDataProvider = ({ children }) => {
       setRoster(grouped);
       setOffline(false);
     } catch {
-      // Keep the demo board on screen rather than showing a broken app.
+      // Surfaced as a banner so a player can tell "no games yet" apart from
+      // "we couldn't reach the server".
       setOffline(true);
     } finally {
       setLoading(false);
@@ -184,6 +184,21 @@ export const AppDataProvider = ({ children }) => {
   }, [user]);
 
   useEffect(() => { loadProfile(); }, [loadProfile]);
+
+  /** A player's real per-sport record, computed in the database from matches joined. */
+  const loadPlayerRecord = useCallback(async (userId) => {
+    if (!isSupabaseConfigured || !userId) return [];
+    const { data, error } = await supabase.rpc("player_record", { p_user_id: userId });
+    if (error) return [];
+    return (data || []).map((r) => ({
+      sport: r.sport,
+      official: r.official_matches,
+      practice: r.practice_matches,
+      attended: r.attended,
+      organised: r.organised,
+      lastPlayed: r.last_played,
+    }));
+  }, []);
 
   const loadLeaderboard = useCallback(async () => {
     if (!isSupabaseConfigured) return [];
@@ -395,7 +410,7 @@ export const AppDataProvider = ({ children }) => {
     authPrompt, setAuthPrompt, requireAuth,
     joinMatch, leaveMatch, createMatch, updateMatch,
     setCheckinStep, approvePlayer, updateProfile,
-    loadAll, loadProfile, loadLeaderboard, readableError,
+    loadAll, loadProfile, loadLeaderboard, loadPlayerRecord, readableError,
   };
 
   return <AppDataContext.Provider value={value}>{children}</AppDataContext.Provider>;

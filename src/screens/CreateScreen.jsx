@@ -4,6 +4,7 @@ import {
   GEAR_OPTIONS, MATCH_TYPES, PRIVACY_OPTIONS, RECURRENCE_OPTIONS, SKILL_LEVELS, SPORTS,
 } from "../lib/constants";
 import { youtubeEmbed } from "../lib/format";
+import { tappable } from "../lib/a11y";
 import { theme } from "../styles/theme";
 
 const todayISO = () => new Date().toISOString().split("T")[0];
@@ -37,6 +38,9 @@ const CreateScreen = ({ onDone, onOpenMatch }) => {
   const [approvalMode, setApprovalMode] = useState(false);
   const [streamOn, setStreamOn] = useState(false);
   const [streamUrl, setStreamUrl] = useState("");
+  // Off by default: attaching coordinates silently would publish wherever the
+  // organiser happened to be standing, which is often home rather than the venue.
+  const [pinHere, setPinHere] = useState(false);
 
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
@@ -65,14 +69,14 @@ const CreateScreen = ({ onDone, onOpenMatch }) => {
   const handleSubmit = async () => {
     if (!validate()) { notify("Check the highlighted fields", "warning"); return; }
     setSaving(true);
-    const gps = await getGPS();
+    const gps = pinHere ? await getGPS() : { lat: null, lng: null };
     const result = await createMatch({
       sport, title, location,
       matchTime: new Date(`${date}T${time}`).toISOString(),
       playersMax, matchType, skill, rules, gear, privacy, recurrence, approvalMode,
       streamUrl: streamOn ? streamUrl : "",
-      lat: gps.lat ?? userPos?.[0] ?? null,
-      lng: gps.lng ?? userPos?.[1] ?? null,
+      lat: gps.lat ?? (pinHere ? userPos?.[0] : null) ?? null,
+      lng: gps.lng ?? (pinHere ? userPos?.[1] : null) ?? null,
     });
     setSaving(false);
     if (result?.ok) setCreated(result.match);
@@ -83,7 +87,7 @@ const CreateScreen = ({ onDone, onOpenMatch }) => {
     setTitle(""); setDate(""); setTime(""); setLocation(""); setRules("");
     setSport("Cricket"); setMatchType("Friendly"); setSkill("All levels");
     setGear(["Ball"]); setPrivacy("Public"); setRecurrence("Once");
-    setPlayersMax(10); setApprovalMode(false); setStreamOn(false); setStreamUrl("");
+    setPlayersMax(10); setApprovalMode(false); setStreamOn(false); setStreamUrl(""); setPinHere(false);
     setErrors({});
   };
 
@@ -171,9 +175,24 @@ const CreateScreen = ({ onDone, onOpenMatch }) => {
             value={location}
             onChange={(e) => setLocation(e.target.value)}
           />
-          {errors.location
-            ? <div className="field-error">{errors.location}</div>
-            : <div style={{ fontSize: 11, color: theme.textMuted, marginTop: 6 }}>📡 Your GPS position is saved with the match so it lands on the map.</div>}
+          {errors.location && <div className="field-error">{errors.location}</div>}
+
+          <div
+            className="settings-row"
+            style={{ marginTop: 10, borderBottom: "none", padding: "6px 0" }}
+            {...tappable(() => setPinHere((v) => !v), `Pin at my current location: ${pinHere ? "on" : "off"}`)}
+            aria-pressed={pinHere}
+          >
+            <div style={{ minWidth: 0 }}>
+              <div className="settings-label">Pin at my current location</div>
+              <div className="settings-sub">
+                {pinHere
+                  ? "Your coordinates will be saved and shown on the map"
+                  : "Off — the match is listed by name only, with no map pin"}
+              </div>
+            </div>
+            <div className={`switch ${pinHere ? "on" : ""}`}><div className="switch-knob" /></div>
+          </div>
         </div>
 
         <div className="form-group row-2">
