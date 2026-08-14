@@ -1,13 +1,22 @@
 import { createClient } from "@supabase/supabase-js";
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+/*
+ * The backend is pinned here rather than read from the environment.
+ *
+ * These are publishable credentials: they are compiled into every client bundle
+ * by design, and Row Level Security — not secrecy — is what protects the data.
+ * There is nothing here an attacker could not read out of the deployed
+ * JavaScript anyway.
+ *
+ * Pinning also fixes a real failure. The Vercel project still carries a
+ * VITE_SUPABASE_URL pointing at a Supabase project that was deleted, and Vite
+ * gives host environment variables priority over .env files — so the deployed
+ * build was talking to a database that no longer exists. Reading env here would
+ * reintroduce that. Once that stale variable is removed from the Vercel
+ * dashboard this can go back to import.meta.env.
+ */
+const SUPABASE_URL = "https://heylgtgocywvrgpyilqu.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_62MUtM2s7r_7Mw6EuTYCrw_rBUpqqpH";
 
-// Fallback so app doesn't crash if env vars are missing
-const url = supabaseUrl || "https://placeholder.supabase.co";
-const key = supabaseAnonKey || "placeholder-key";
-
-export const supabase = createClient(url, key);
-export const isSupabaseConfigured =
-  !!supabaseUrl && supabaseUrl !== "your_supabase_project_url" &&
-  !!supabaseAnonKey && supabaseAnonKey !== "your_supabase_anon_key";
+export const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+export const isSupabaseConfigured = true;
