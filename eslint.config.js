@@ -5,7 +5,9 @@ import reactRefresh from 'eslint-plugin-react-refresh'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist']),
+  // 'dist' alone only matches the top level, so a build inside a git worktree
+  // under .claude/ was being linted as though it were source.
+  globalIgnores(['dist', '**/dist/**', '.claude/**']),
   {
     files: ['**/*.{js,jsx}'],
     extends: [
