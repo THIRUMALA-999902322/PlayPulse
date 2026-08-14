@@ -1,68 +1,67 @@
-import { useState, useCallback } from "react";
-import { useAuth } from "./context/AuthContext";
+import { useEffect, useState } from "react";
+import { useAuth } from "./hooks/useAuth";
+import { useAppData } from "./hooks/useAppData";
 import { globalStyles, theme } from "./styles/theme";
 
 import AuthScreen from "./screens/AuthScreen";
-import HomeScreen from "./screens/HomeScreen";
-import ExploreScreen from "./screens/ExploreScreen";
-import CreateScreen from "./screens/CreateScreen";
-import ChatScreen from "./screens/ChatScreen";
-import ProfileScreen from "./screens/ProfileScreen";
+import MapScreen from "./screens/MapScreen";
+import MatchesScreen from "./screens/MatchesScreen";
+import LeagueDetailScreen from "./screens/LeagueDetailScreen";
 import MatchDetailScreen from "./screens/MatchDetailScreen";
-import NotificationsScreen from "./screens/NotificationsScreen";
+import CreateScreen from "./screens/CreateScreen";
+import PortfolioScreen from "./screens/PortfolioScreen";
+import ProfileScreen from "./screens/ProfileScreen";
 import Toast from "./components/Toast";
 
 const icons = {
-  home:    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg>,
-  explore: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polygon points="16.24,7.76 14.12,14.12 7.76,16.24 9.88,9.88 16.24,7.76"/></svg>,
-  chat:    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>,
-  profile: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
-  plus:    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
+  map:       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>,
+  matches:   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polygon points="16.24,7.76 14.12,14.12 7.76,16.24 9.88,9.88 16.24,7.76"/></svg>,
+  portfolio: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>,
+  profile:   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
+  plus:      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
 };
 
-const navItems = [
-  { id: "home",    label: "Home" },
-  { id: "explore", label: "Explore" },
-  { id: null,      label: "Post" },
-  { id: "chat",    label: "Chat" },
-  { id: "profile", label: "Me" },
+const NAV = [
+  { id: "map", label: "Map", icon: icons.map },
+  { id: "matches", label: "Matches", icon: icons.matches },
+  { id: "create" },
+  { id: "portfolio", label: "Portfolio", icon: icons.portfolio },
+  { id: "profile", label: "Me", icon: icons.profile },
 ];
 
 export default function App() {
-  const { user, loading, isSupabaseConfigured } = useAuth();
-  const [screen, setScreen]           = useState("home");
-  const [selectedMatch, setSelectedMatch] = useState(null);
-  const [guestMode, setGuestMode]     = useState(false);
-  const [toast, setToast]             = useState(null); // { message, type }
+  const { loading: authLoading } = useAuth();
+  const { matches, loading: dataLoading, authPrompt, setAuthPrompt } = useAppData();
 
-  const showToast = useCallback((message, type = "info") => {
-    setToast({ message, type });
-  }, []);
+  const [tab, setTab] = useState("map");
+  const [view, setView] = useState({ name: "tab" });   // tab | match | league | create
+  const [manualAuth, setManualAuth] = useState(false);
+  // A shared link (?match=<id>) opens straight into that match once data lands.
+  const [deepLinkId, setDeepLinkId] = useState(
+    () => new URLSearchParams(window.location.search).get("match")
+  );
 
-  const handleMatchClick = (m) => {
-    setSelectedMatch(m);
-    setScreen("matchDetail");
+  const openMatch = (match, matchTab = "overview") => {
+    setDeepLinkId(null);
+    setView({ name: "match", match, matchTab });
   };
+  const openLeague = (league) => setView({ name: "league", league });
+  const closeOverlay = () => { setDeepLinkId(null); setView({ name: "tab" }); };
 
-  const handleBack = () => {
-    setSelectedMatch(null);
-    setScreen("home");
-  };
+  useEffect(() => {
+    if (deepLinkId) window.history.replaceState({}, "", window.location.pathname);
+  }, [deepLinkId]);
 
-  const renderScreen = () => {
-    switch (screen) {
-      case "home":        return <HomeScreen onMatchClick={handleMatchClick} showToast={showToast} onNavigate={setScreen} />;
-      case "explore":     return <ExploreScreen onMatchClick={handleMatchClick} showToast={showToast} />;
-      case "create":      return <CreateScreen showToast={showToast} />;
-      case "chat":        return <ChatScreen showToast={showToast} />;
-      case "profile":     return <ProfileScreen onSignOut={() => setGuestMode(false)} showToast={showToast} />;
-      case "matchDetail":    return <MatchDetailScreen match={selectedMatch} onBack={handleBack} showToast={showToast} />;
-      case "notifications":  return <NotificationsScreen showToast={showToast} />;
-      default:               return <HomeScreen onMatchClick={handleMatchClick} showToast={showToast} onNavigate={setScreen} />;
-    }
-  };
+  // A blocked write (a guest tapping Join) raises the sign-in screen.
+  const showAuth = manualAuth || !!authPrompt;
+  const dismissAuth = () => { setManualAuth(false); setAuthPrompt(null); };
 
-  if (loading) {
+  const deepLinked = deepLinkId && matches.find((m) => String(m.id) === deepLinkId);
+  const current = deepLinked && view.name === "tab"
+    ? { name: "match", match: deepLinked, matchTab: "overview" }
+    : view;
+
+  if (authLoading || dataLoading) {
     return (
       <>
         <style>{globalStyles}</style>
@@ -71,84 +70,77 @@ export default function App() {
             <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 36, letterSpacing: 3, marginBottom: 8 }}>
               PLAY<span style={{ color: theme.accent }}>PULSE</span>
             </div>
-            <div style={{ color: theme.textMuted, fontSize: 13 }}>Loading...</div>
+            <div style={{ color: theme.textMuted, fontSize: 13 }}>Finding games near you…</div>
           </div>
         </div>
       </>
     );
   }
 
-  if (isSupabaseConfigured && !user && !guestMode) {
+  if (showAuth) {
     return (
       <>
         <style>{globalStyles}</style>
         <div className="app-shell">
-          <AuthScreen onGuest={() => setGuestMode(true)} />
+          <AuthScreen reason={authPrompt} onClose={dismissAuth} />
         </div>
       </>
     );
   }
+
+  const renderTab = () => {
+    switch (tab) {
+      case "map":       return <MapScreen onOpenMatch={openMatch} />;
+      case "matches":   return <MatchesScreen onOpenMatch={openMatch} onOpenLeague={openLeague} />;
+      case "portfolio": return <PortfolioScreen />;
+      case "profile":   return <ProfileScreen onSignIn={() => setManualAuth(true)} />;
+      default:          return <MapScreen onOpenMatch={openMatch} />;
+    }
+  };
 
   return (
     <>
       <style>{globalStyles}</style>
       <div className="app-shell">
-        {/* Toast */}
-        {toast && (
-          <Toast
-            message={toast.message}
-            type={toast.type}
-            onClose={() => setToast(null)}
+        {current.name === "match" && (
+          <MatchDetailScreen
+            key={`${current.match.id}-${current.matchTab}`}
+            match={current.match}
+            initialTab={current.matchTab}
+            onBack={closeOverlay}
           />
         )}
-
-        {/* Guest mode banner */}
-        {guestMode && !user && (
-          <div style={{
-            background: theme.warning + "15",
-            borderBottom: `1px solid ${theme.warning}30`,
-            padding: "8px 16px",
-            fontSize: 11,
-            color: theme.warning,
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            position: "sticky", top: 0, zIndex: 200,
-          }}>
-            <span>👤 Browsing as guest</span>
-            <button
-              onClick={() => setGuestMode(false)}
-              style={{ background: theme.warning, color: theme.bg, border: "none", borderRadius: 6, padding: "3px 10px", fontSize: 10, fontWeight: 700, cursor: "pointer", fontFamily: "Outfit, sans-serif" }}
-            >
-              Sign In
-            </button>
-          </div>
+        {current.name === "league" && (
+          <LeagueDetailScreen league={current.league} onBack={closeOverlay} onOpenMatch={openMatch} />
         )}
+        {current.name === "create" && (
+          <CreateScreen onDone={closeOverlay} onOpenMatch={(m) => openMatch(m)} />
+        )}
+        {current.name === "tab" && renderTab()}
 
-        {renderScreen()}
-
-        {screen !== "matchDetail" && (
+        {current.name === "tab" && (
           <nav className="bottom-nav">
-            {navItems.map((item) => {
-              if (!item.id) {
-                return (
-                  <div key="fab" className="nav-fab" onClick={() => setScreen("create")}>
-                    <button className="fab-btn" style={{ color: theme.bg }}>
-                      {icons.plus}
-                    </button>
-                  </div>
-                );
-              }
-              const iconMap = { home: icons.home, explore: icons.explore, chat: icons.chat, profile: icons.profile };
-              return (
-                <button key={item.id} className={`nav-item ${screen === item.id ? "active" : ""}`} onClick={() => setScreen(item.id)}>
-                  {iconMap[item.id]}
+            {NAV.map((item) =>
+              item.id === "create" ? (
+                <div key="fab" className="nav-fab" onClick={() => setView({ name: "create" })}>
+                  <button className="fab-btn" aria-label="Post a match">{icons.plus}</button>
+                </div>
+              ) : (
+                <button
+                  key={item.id}
+                  className={`nav-item ${tab === item.id ? "active" : ""}`}
+                  onClick={() => setTab(item.id)}
+                  aria-current={tab === item.id ? "page" : undefined}
+                >
+                  {item.icon}
                   <span>{item.label}</span>
                 </button>
-              );
-            })}
+              )
+            )}
           </nav>
         )}
+
+        <Toast />
       </div>
     </>
   );
