@@ -31,7 +31,7 @@ everything else is reached in context rather than as another tab.
 | `src/App.jsx` | Shell: tab switching, overlays, deep links |
 | `src/context/AppDataContext.jsx` | All shared state and every mutating action |
 | `src/context/AuthContext.jsx` | Supabase session handling |
-| `src/hooks/useMatchDetail.js` | Per-match chat, commentary, fundraisers, weather |
+| `src/hooks/useMatchDetail.js` | Per-match chat, commentary, scoreboard, weather |
 | `src/screens/` | One file per screen |
 | `src/lib/format.js` | Time, distance and status formatting |
 | `src/lib/calendar.js` | Builds the .ics a player downloads for a match |
@@ -45,9 +45,9 @@ Two rules keep the UI honest:
 tapping *Join* gets a sign-in screen explaining why, never a dead click. Actions apply
 optimistically and roll back with a readable message if the server disagrees.
 
-**Multi-table work happens in Postgres.** Joining, leaving, checking in and donating
+**Multi-table work happens in Postgres.** Joining, leaving and checking in
 each touch two tables, so they run as `security definer` functions (`join_match`,
-`leave_match`, `set_checkin_step`, `approve_player`, `donate_to_fundraiser`). A dropped
+`leave_match`, `set_checkin_step`, `approve_player`). A dropped
 round-trip can't leave a roster row without its counter.
 
 One consequence worth knowing before adding a query: every `user_id` and `created_by`
@@ -65,3 +65,35 @@ New Supabase projects require email confirmation by default. To let players in t
 moment they sign up, turn off **Confirm email** under Authentication → Sign In / Up →
 Email in the Supabase dashboard. Leave it on and the app handles it: signup explains
 that a confirmation link is on its way and offers to resend it.
+
+## What is real, and what is not
+
+Everything shown to a player is computed from their own activity. There is no
+seeded content and no sample data anywhere in the app.
+
+- **Reliability** — of the matches you joined that have since finished, the share
+  you actually checked in to. Recalculated by trigger; a no-show moves it.
+- **Portfolio** — counted in the database from matches joined, split competitive
+  vs practice. Milestones are derived from those numbers, so none can be claimed
+  without the record to support it.
+- **Match privacy** — `Invite Only` is enforced by row level security, together
+  with chat, so a private match and its conversation are invisible to anyone not
+  on the roster.
+- **Recurrence** — an hourly job seeds the next occurrence of a repeating match,
+  catching up if several intervals passed while nobody was using the app.
+
+Deliberately absent: payments. A donations feature existed and moved no money,
+so it was removed rather than left as decoration. Adding it back means a Stripe
+account, an entity that can receive money, and terms — not just code.
+
+## Known limits before a wide launch
+
+- **Free-tier database.** Supabase pauses a project after about a week of no
+  activity and destroys it after 90 days paused. The hourly job above keeps it
+  awake, but real user data belongs on a paid plan with backups.
+- **No moderation tools.** Chat is open to anyone signed in, with no reporting,
+  blocking, or profanity handling.
+- **Leagues are read-only.** Standings and fixtures render, but nothing in the
+  app creates a league or records a result yet.
+- **No automated tests.** Behaviour has been verified by hand against the
+  running app.
