@@ -1,0 +1,72 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>PlayPulse film</title>
+<link rel="stylesheet" href="fonts.css">
+<style>
+  html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; background: #060910; }
+  #stage, #ov, #lines { position: fixed; left: 0; top: 0; width: 1920px; height: 1080px; }
+  #ov { pointer-events: none; font-family: Outfit, "Noto Color Emoji", sans-serif; color: #F0F4FF; }
+  #lines { pointer-events: none; overflow: visible; }
+  .cl-line { fill: none; stroke-width: 2.5; }
+  .cl-dot { }
+
+  /* step header */
+  .step { position: absolute; left: 92px; top: 70px; display: flex; align-items: flex-start; gap: 26px; isolation: isolate; }
+  .step::before, .rail::before { content: ""; position: absolute; z-index: -1; pointer-events: none;
+    background: radial-gradient(ellipse at center, rgba(5,8,15,.78) 0%, rgba(5,8,15,.45) 45%, rgba(5,8,15,0) 72%); }
+  .step::before { left: -260px; top: -200px; width: 1300px; height: 620px; }
+  .rail::before { left: -120px; right: -120px; top: -70px; bottom: -70px; }
+  .step .num { font: 400 172px/0.78 "Bebas Neue"; color: transparent; -webkit-text-stroke: 2.5px #00F5A0;
+               letter-spacing: 2px; text-shadow: 0 0 30px rgba(0,245,160,.35); }
+  .step .ttlwrap { overflow: hidden; padding-top: 6px; }
+  .step .kicker { font: 700 17px Outfit; letter-spacing: 6px; color: #00F5A0; display: flex; align-items: center; gap: 12px; }
+  .step .kicker i { display: inline-block; width: 44px; height: 3px; background: #00F5A0; box-shadow: 0 0 12px #00F5A0; }
+  .step .ttl { font: 400 104px/0.95 "Bebas Neue"; letter-spacing: 5px; text-shadow: 0 6px 40px rgba(0,0,0,.6); white-space: nowrap; }
+  .step .sub { font: 500 27px Outfit; color: #A9B4CF; margin-top: 4px; text-shadow: 0 2px 16px rgba(0,0,0,.8); white-space: nowrap; }
+
+  /* progress rail */
+  .rail { position: absolute; right: 92px; top: 84px; display: flex; gap: 10px; align-items: center; isolation: isolate; }
+  .rail .it { display: flex; align-items: center; gap: 9px; font: 700 15px Outfit; letter-spacing: 2.5px; color: #5d6a8f; }
+  .rail .it b { font: 400 20px "Bebas Neue"; letter-spacing: 1px; }
+  .rail .it.done { color: #a3aecb; }
+  .rail .it.on { color: #00F5A0; text-shadow: 0 0 14px rgba(0,245,160,.6); }
+  .rail .sep { width: 22px; height: 2px; background: #273153; }
+  .rail .sep.done { background: #00F5A0; box-shadow: 0 0 8px #00F5A0; }
+
+  /* subtitles */
+  .subs { position: absolute; left: 0; right: 0; bottom: 70px; display: flex; justify-content: center; }
+  .subs span { max-width: 1240px; text-align: center; font: 600 33px/1.32 Outfit; letter-spacing: .2px;
+               background: rgba(6,9,16,.66); padding: 10px 28px 12px; border-radius: 14px;
+               border: 1px solid rgba(255,255,255,.06); text-shadow: 0 2px 10px rgba(0,0,0,.6); }
+
+  /* kinetic type */
+  .kin { position: absolute; left: 0; right: 0; text-align: center; font-family: "Bebas Neue"; letter-spacing: 6px; white-space: nowrap; }
+  .kin span { display: inline-block; }
+  .kin .acc { color: #00F5A0; text-shadow: 0 0 40px rgba(0,245,160,.55); }
+  .kin .red { color: #FF4757; text-shadow: 0 0 40px rgba(255,71,87,.6); }
+
+  /* callouts */
+  .callout { position: absolute; left: 0; top: 0; padding: 10px 18px 11px; border-radius: 12px; border: 2px solid #00F5A0;
+             background: rgba(10,14,25,.86); white-space: nowrap; box-shadow: 0 10px 40px rgba(0,0,0,.5); opacity: 0; }
+  .callout .k { font: 700 13px Outfit; letter-spacing: 3px; color: #00F5A0; display: block; }
+  .callout .v { font: 700 23px Outfit; color: #F0F4FF; display: block; margin-top: 2px; }
+  .callout.live .k { color: #FF4757; }
+
+  .tagline { position: absolute; left: 0; right: 0; display: flex; justify-content: center; gap: 46px;
+             font: 400 76px "Bebas Neue"; letter-spacing: 6px; }
+  .tagline span { display: inline-block; }
+  .footer { position: absolute; left: 0; right: 0; text-align: center; font: 500 26px Outfit; color: #8f9abb; letter-spacing: 1px; }
+</style>
+<script type="importmap">
+{ "imports": { "three": "/node_modules/three/build/three.module.js", "three/addons/": "/node_modules/three/examples/jsm/" } }
+</script>
+</head>
+<body>
+<div id="stage"></div>
+<svg id="lines" xmlns="http://www.w3.org/2000/svg" width="1920" height="1080"></svg>
+<div id="ov"></div>
+<script type="module" src="main.js"></script>
+</body>
+</html>

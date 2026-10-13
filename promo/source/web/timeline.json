@@ -1,0 +1,60 @@
+{
+  "fps": 30,
+  "duration": 84,
+  "bpm": 120,
+  "width": 1920,
+  "height": 1080,
+  "scenes": [
+    { "id": "hook",     "start": 0,  "end": 6 },
+    { "id": "logo",     "start": 6,  "end": 14 },
+    { "id": "discover", "start": 14, "end": 24, "step": 1, "title": "Discover", "sub": "A live map of every game near you" },
+    { "id": "join",     "start": 24, "end": 34, "step": 2, "title": "Join",     "sub": "See the details. One tap and you're in" },
+    { "id": "checkin",  "start": 34, "end": 44, "step": 3, "title": "Check in", "sub": "Match-day status, step by step" },
+    { "id": "gameon",   "start": 44, "end": 56, "step": 4, "title": "Game on",  "sub": "Chat, live score and stream in one place" },
+    { "id": "host",     "start": 56, "end": 66, "step": 5, "title": "Host",     "sub": "Post your own match in seconds" },
+    { "id": "levelup",  "start": 66, "end": 76, "step": 6, "title": "Level up", "sub": "Your record, built from every game" },
+    { "id": "outro",    "start": 76, "end": 84 }
+  ],
+  "transitions": [
+    { "at": 6,  "kind": "flash" },
+    { "at": 14, "kind": "zoom" },
+    { "at": 24, "kind": "whip" },
+    { "at": 34, "kind": "glitch" },
+    { "at": 44, "kind": "zoom" },
+    { "at": 56, "kind": "whipv" },
+    { "at": 66, "kind": "glitch" },
+    { "at": 76, "kind": "flash" }
+  ],
+  "vo": {
+    "hook": 0.9,
+    "meet": 8.8,
+    "discover": 14.6,
+    "join": 24.5,
+    "checkin": 34.6,
+    "gameon": 44.6,
+    "host": 56.6,
+    "levelup": 66.6,
+    "outro": 77.0
+  },
+  "subtitles": {
+    "discover": [[0, 0, "Open the app, and a live map lights up with every game around you."],
+                 [1, 3, "Filter by sport: cricket, football, basketball,"],
+                 [4, 4, "and see what's live right now."]],
+    "join":     [[0, 1, "Tap a match to see when and where, the skill level, and how many spots are left."],
+                 [2, 3, "One tap, and you're on the roster."],
+                 [4, 4, "Add it to your calendar, or share it with a friend."]],
+    "checkin":  [[0, 0, "On match day, check in step by step."],
+                 [1, 3, "Confirmed. On the way. Arrived."],
+                 [4, 4, "So the organiser knows exactly who's coming."]],
+    "gameon":   [[0, 0, "Once it's game on, everything lives inside the match."],
+                 [1, 1, "Chat with everyone, or just your team."],
+                 [2, 2, "Follow the live scoreboard, ball by ball."],
+                 [3, 4, "Can't make it? Watch the stream."]],
+    "host":     [[0, 0, "Want to run your own game?"],
+                 [1, 1, "Tap plus, pick a sport, a time and a ground, and it's live on the map."],
+                 [2, 2, "Make it weekly, or keep it invite-only."]],
+    "levelup":  [[0, 0, "Every game builds your portfolio,"],
+                 [1, 1, "with competitive and practice tracked separately."],
+                 [2, 2, "And a reliability score that proves you turn up."]]
+  }
+}

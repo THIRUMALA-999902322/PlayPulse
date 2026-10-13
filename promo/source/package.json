@@ -1,0 +1,15 @@
+{
+  "name": "playpulse-explainer",
+  "private": true,
+  "type": "module",
+  "description": "Renders the PlayPulse explainer film (see ../README.md)",
+  "scripts": {
+    "build": "./build.sh"
+  },
+  "dependencies": {
+    "@fontsource/bebas-neue": "5.1.0",
+    "@fontsource/outfit": "5.1.0",
+    "playwright-core": "1.56.1",
+    "three": "0.169.0"
+  }
+}

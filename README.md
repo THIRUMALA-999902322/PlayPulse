@@ -6,6 +6,9 @@ A mobile-first web app for amateur and campus sport: discover games on a live ma
 join them, and run everything about the match — chat, score, stream, kit funding and
 match-day check-in — from inside the match itself.
 
+**[Watch the 84-second explainer](promo/playpulse-explainer.mp4)**, a narrated 3D walkthrough
+of every step. How it was made and how to re-render it is in [`promo/`](promo/README.md).
+
 ## Running it
 
 ```bash

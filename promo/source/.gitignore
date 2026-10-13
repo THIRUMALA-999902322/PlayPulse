@@ -1,0 +1,5 @@
+frames/
+.venv/
+.cache/
+cues.json
+mix.wav
